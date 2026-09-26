@@ -546,7 +546,8 @@ function PriceField({
   lang: Lang
 }) {
   const parsed = parsePrice(value)
-  const edited = official == null ? parsed != null : parsed == null || Math.abs(parsed - official) > 1e-6
+  const shownOfficial = official == null ? null : Number(priceInput(official))
+  const edited = shownOfficial == null ? parsed != null : parsed == null || Math.abs(parsed - shownOfficial) > 1e-9
   return (
     <label className="grid gap-1.5 text-sm">
       <span className="flex items-center justify-between gap-2">

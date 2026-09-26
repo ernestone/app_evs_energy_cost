@@ -44,7 +44,7 @@ export function convertMoney(amount: number, fx: FxTable, source: string, displa
 
 export function priceInput(value: number | null) {
   if (value == null) return ""
-  const rounded = Math.round(value * 1_000_000) / 1_000_000
+  const rounded = Math.round(value * 10_000) / 10_000
   return String(rounded)
 }
 
