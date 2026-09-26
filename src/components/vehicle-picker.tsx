@@ -20,39 +20,26 @@ export function VehiclePicker({
   selected: Vehicle | null
   onSelect: (vehicle: Vehicle | null) => void
 }) {
-  const [years, setYears] = useState<number[]>([])
   const [makes, setMakes] = useState<string[]>([])
   const [models, setModels] = useState<string[]>([])
+  const [years, setYears] = useState<number[]>([])
   const [trims, setTrims] = useState<{ id: number; label: string }[]>([])
-  const [year, setYear] = useState("")
   const [make, setMake] = useState("")
   const [model, setModel] = useState("")
+  const [year, setYear] = useState("")
   const [query, setQuery] = useState("")
-  const [loading, setLoading] = useState(false)
+  const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    let cancel = false
-    fetch(`/api/catalog?side=${side}`)
-      .then((response) => response.json())
-      .then((data: { years: number[] }) => {
-        if (!cancel) setYears(data.years)
-      })
-      .catch(() => {
-        if (!cancel) setYears([])
-      })
-    return () => {
-      cancel = true
-    }
-  }, [side])
-
-  useEffect(() => {
-    if (!year) return
     let cancel = false
     setLoading(true)
-    fetch(`/api/catalog?side=${side}&year=${year}`)
+    fetch(`/api/catalog?side=${side}`)
       .then((response) => response.json())
       .then((data: { makes: string[] }) => {
-        if (!cancel) setMakes(data.makes)
+        if (!cancel) setMakes(data.makes ?? [])
+      })
+      .catch(() => {
+        if (!cancel) setMakes([])
       })
       .finally(() => {
         if (!cancel) setLoading(false)
@@ -60,35 +47,57 @@ export function VehiclePicker({
     return () => {
       cancel = true
     }
-  }, [side, year])
+  }, [side])
 
   useEffect(() => {
-    if (!year || !make) return
+    if (!make) return
     let cancel = false
-    fetch(`/api/catalog?side=${side}&year=${year}&make=${encodeURIComponent(make)}`)
+    fetch(`/api/catalog?side=${side}&make=${encodeURIComponent(make)}`)
       .then((response) => response.json())
       .then((data: { models: string[] }) => {
-        if (!cancel) setModels(data.models)
+        if (!cancel) setModels(data.models ?? [])
       })
     return () => {
       cancel = true
     }
-  }, [side, year, make])
+  }, [side, make])
 
   useEffect(() => {
-    if (!year || !make || !model) return
+    if (!make || !model) return
+    let cancel = false
+    fetch(`/api/catalog?side=${side}&make=${encodeURIComponent(make)}&model=${encodeURIComponent(model)}`)
+      .then((response) => response.json())
+      .then((data: { years: number[] }) => {
+        if (cancel) return
+        const next = data.years ?? []
+        setYears(next)
+        setYear(next.length === 1 ? String(next[0]) : "")
+      })
+    return () => {
+      cancel = true
+    }
+  }, [side, make, model])
+
+  useEffect(() => {
+    if (!make || !model || !year) return
     let cancel = false
     fetch(
-      `/api/catalog?side=${side}&year=${year}&make=${encodeURIComponent(make)}&model=${encodeURIComponent(model)}`,
+      `/api/catalog?side=${side}&make=${encodeURIComponent(make)}&model=${encodeURIComponent(model)}&year=${year}`,
     )
       .then((response) => response.json())
       .then((data: { trims: { id: number; label: string }[] }) => {
-        if (!cancel) setTrims(data.trims)
+        if (!cancel) setTrims(data.trims ?? [])
       })
     return () => {
       cancel = true
     }
-  }, [side, year, make, model])
+  }, [side, make, model, year])
+
+  useEffect(() => {
+    if (trims.length !== 1) return
+    if (selected?.id === trims[0].id) return
+    void chooseTrim(String(trims[0].id))
+  }, [trims, selected])
 
   const needle = query.trim().toLowerCase()
   const shownMakes = useMemo(
@@ -99,10 +108,8 @@ export function VehiclePicker({
     () => models.filter((item) => item.toLowerCase().includes(needle)),
     [models, needle],
   )
-  const shownTrims = useMemo(
-    () => trims.filter((item) => item.label.toLowerCase().includes(needle)),
-    [trims, needle],
-  )
+  const shownYears = years
+  const shownTrims = trims
 
   async function chooseTrim(id: string) {
     if (!id) {
@@ -116,36 +123,18 @@ export function VehiclePicker({
 
   return (
     <div className="grid gap-3">
-      <div className="grid gap-3 sm:grid-cols-3">
-        <Field label={copy.yearWord}>
-          <select
-            className={fieldClass}
-            value={year}
-            onChange={(event) => {
-              setYear(event.target.value)
-              setMake("")
-              setModel("")
-              setModels([])
-              setTrims([])
-              onSelect(null)
-            }}
-          >
-            <option value="">{copy.choose}</option>
-            {years.map((item) => (
-              <option key={item} value={item}>
-                {item}
-              </option>
-            ))}
-          </select>
-        </Field>
+      <div className="grid gap-3 sm:grid-cols-2">
         <Field label={copy.make}>
           <select
             className={fieldClass}
             value={make}
-            disabled={!year}
+            aria-label={copy.make}
             onChange={(event) => {
               setMake(event.target.value)
               setModel("")
+              setYear("")
+              setYears([])
+              setModels([])
               setTrims([])
               onSelect(null)
             }}
@@ -162,9 +151,13 @@ export function VehiclePicker({
           <select
             className={fieldClass}
             value={model}
+            aria-label={copy.model}
             disabled={!make}
             onChange={(event) => {
               setModel(event.target.value)
+              setYear("")
+              setYears([])
+              setTrims([])
               onSelect(null)
             }}
           >
@@ -177,23 +170,50 @@ export function VehiclePicker({
           </select>
         </Field>
       </div>
+      {years.length > 1 || trims.length > 1 ? (
+        <div className="grid gap-3 sm:grid-cols-2">
+          {years.length > 1 ? (
+            <Field label={copy.yearWord}>
+              <select
+                className={fieldClass}
+                value={year}
+                aria-label={copy.yearWord}
+                onChange={(event) => {
+                  setYear(event.target.value)
+                  setTrims([])
+                  onSelect(null)
+                }}
+              >
+                <option value="">{copy.choose}</option>
+                {shownYears.map((item) => (
+                  <option key={item} value={item}>
+                    {item}
+                  </option>
+                ))}
+              </select>
+            </Field>
+          ) : null}
+          {trims.length > 1 ? (
+            <Field label={copy.version}>
+              <select
+                className={fieldClass}
+                value={selected?.id ?? ""}
+                aria-label={copy.version}
+                onChange={(event) => void chooseTrim(event.target.value)}
+              >
+                <option value="">{copy.choose}</option>
+                {shownTrims.map((item) => (
+                  <option key={item.id} value={item.id}>
+                    {item.label}
+                  </option>
+                ))}
+              </select>
+            </Field>
+          ) : null}
+        </div>
+      ) : null}
       <Field label={copy.filter}>
         <Input value={query} onChange={(event) => setQuery(event.target.value)} placeholder={copy.filter} />
-      </Field>
-      <Field label={copy.version}>
-        <select
-          className={fieldClass}
-          value={selected?.id ?? ""}
-          disabled={!model}
-          onChange={(event) => void chooseTrim(event.target.value)}
-        >
-          <option value="">{copy.choose}</option>
-          {shownTrims.map((item) => (
-            <option key={item.id} value={item.id}>
-              {item.label}
-            </option>
-          ))}
-        </select>
       </Field>
       {loading ? <p className="text-sm text-muted-foreground">{copy.loading}</p> : null}
       {selected ? (

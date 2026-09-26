@@ -9,12 +9,11 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: "side" }, { status: 400 })
   }
   const typed = side as Side
-  const year = params.get("year")
-  if (!year) return NextResponse.json({ years: catalogYears(typed) })
-  const yearNumber = Number(year)
   const make = params.get("make")
-  if (!make) return NextResponse.json({ makes: catalogMakes(typed, yearNumber) })
+  if (!make) return NextResponse.json({ makes: catalogMakes(typed) })
   const model = params.get("model")
-  if (!model) return NextResponse.json({ models: catalogModels(typed, yearNumber, make) })
-  return NextResponse.json({ trims: catalogTrims(typed, yearNumber, make, model) })
+  if (!model) return NextResponse.json({ models: catalogModels(typed, make) })
+  const year = params.get("year")
+  if (!year) return NextResponse.json({ years: catalogYears(typed, make, model) })
+  return NextResponse.json({ trims: catalogTrims(typed, make, model, Number(year)) })
 }

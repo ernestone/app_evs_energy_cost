@@ -5,9 +5,9 @@ import type { Side, Vehicle } from "./types"
 interface Index {
   vehicles: Vehicle[]
   byId: Map<number, Vehicle>
-  years: Record<Side, number[]>
-  makes: Map<string, string[]>
+  makes: Record<Side, string[]>
   models: Map<string, string[]>
+  years: Map<string, number[]>
   trims: Map<string, { id: number; label: string }[]>
 }
 
@@ -18,34 +18,35 @@ function load(): Index {
   const file = path.join(process.cwd(), "data/snapshot/vehicles.json")
   const vehicles = JSON.parse(fs.readFileSync(file, "utf8")) as Vehicle[]
   const byId = new Map<number, Vehicle>()
-  const yearSets: Record<Side, Set<number>> = { ev: new Set(), ice: new Set() }
-  const makeSets = new Map<string, Set<string>>()
+  const makeSets: Record<Side, Set<string>> = { ev: new Set(), ice: new Set() }
   const modelSets = new Map<string, Set<string>>()
+  const yearSets = new Map<string, Set<number>>()
   const trimBuckets = new Map<string, { id: number; label: string }[]>()
 
   for (const vehicle of vehicles) {
     byId.set(vehicle.id, vehicle)
-    yearSets[vehicle.side].add(vehicle.year)
-    const makeKey = `${vehicle.side}|${vehicle.year}`
-    const modelKey = `${makeKey}|${vehicle.make}`
-    const trimKey = `${modelKey}|${vehicle.model}`
-    add(makeSets, makeKey, vehicle.make)
+    makeSets[vehicle.side].add(vehicle.make)
+    const modelKey = `${vehicle.side}|${vehicle.make}`
+    const yearKey = `${modelKey}|${vehicle.model}`
+    const trimKey = `${yearKey}|${vehicle.year}`
     add(modelSets, modelKey, vehicle.model)
+    const years = yearSets.get(yearKey) ?? new Set<number>()
+    years.add(vehicle.year)
+    yearSets.set(yearKey, years)
     const bucket = trimBuckets.get(trimKey) ?? []
     bucket.push({ id: vehicle.id, label: trimLabel(vehicle) })
     trimBuckets.set(trimKey, bucket)
   }
 
   const sort = (values: Iterable<string>) => [...values].sort((a, b) => a.localeCompare(b))
+  const years = new Map<string, number[]>()
+  for (const [key, values] of yearSets) years.set(key, [...values].sort((a, b) => b - a))
   index = {
     vehicles,
     byId,
-    years: {
-      ev: [...yearSets.ev].sort((a, b) => b - a),
-      ice: [...yearSets.ice].sort((a, b) => b - a),
-    },
-    makes: mapSets(makeSets, sort),
+    makes: { ev: sort(makeSets.ev), ice: sort(makeSets.ice) },
     models: mapSets(modelSets, sort),
+    years,
     trims: trimBuckets,
   }
   return index
@@ -67,20 +68,20 @@ export function trimLabel(vehicle: Vehicle) {
   return [vehicle.version, vehicle.trany, vehicle.drive].filter(Boolean).join(" · ")
 }
 
-export function catalogYears(side: Side) {
-  return load().years[side]
+export function catalogMakes(side: Side) {
+  return load().makes[side]
 }
 
-export function catalogMakes(side: Side, year: number) {
-  return load().makes.get(`${side}|${year}`) ?? []
+export function catalogModels(side: Side, make: string) {
+  return load().models.get(`${side}|${make}`) ?? []
 }
 
-export function catalogModels(side: Side, year: number, make: string) {
-  return load().models.get(`${side}|${year}|${make}`) ?? []
+export function catalogYears(side: Side, make: string, model: string) {
+  return load().years.get(`${side}|${make}|${model}`) ?? []
 }
 
-export function catalogTrims(side: Side, year: number, make: string, model: string) {
-  return load().trims.get(`${side}|${year}|${make}|${model}`) ?? []
+export function catalogTrims(side: Side, make: string, model: string, year: number) {
+  return load().trims.get(`${side}|${make}|${model}|${year}`) ?? []
 }
 
 export function vehicleById(id: number) {
