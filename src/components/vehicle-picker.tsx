@@ -215,6 +215,9 @@ export function VehiclePicker({
       <Field label={copy.filter}>
         <Input value={query} onChange={(event) => setQuery(event.target.value)} placeholder={copy.filter} />
       </Field>
+      {make && needle && models.length > 0 && shownModels.length === 0 ? (
+        <p className="text-sm leading-6 text-muted-foreground">{copy.noModelMatch}</p>
+      ) : null}
       {loading ? <p className="text-sm text-muted-foreground">{copy.loading}</p> : null}
       {selected ? (
         <p className="text-sm text-foreground">

@@ -42,6 +42,9 @@ export function copy(lang: Lang) {
     model: es ? "Modelo" : "Model",
     version: es ? "Versión" : "Version",
     filter: es ? "Filtrar la lista" : "Filter the list",
+    noModelMatch: es
+      ? "Ningún modelo de esta marca en el catálogo EPA contiene ese texto. Si no se vendió en EE. UU. con ese nombre, no está en la ficha."
+      : "No model of this make in the EPA catalog contains that text. If it was not sold in the US under that name, it is not in the file.",
     choose: es ? "Elegir" : "Choose",
     loading: es ? "Cargando el catálogo…" : "Loading the catalog…",
     catalogNote: es
