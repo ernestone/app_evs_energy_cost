@@ -1,0 +1,1301 @@
+[
+  {
+    "code": "AT",
+    "name": {
+      "es": "Austria",
+      "en": "Austria"
+    },
+    "currency": "EUR",
+    "gasolinePerLiter": 1.925,
+    "dieselPerLiter": 2.238,
+    "electricityPerKwh": 0.3272,
+    "gasoline": {
+      "value": 1.925,
+      "date": "2026-09-21",
+      "source": "European Commission Weekly Oil Bulletin, Euro-super 95 with taxes",
+      "url": "https://energy.ec.europa.eu/data-and-analysis/weekly-oil-bulletin_en",
+      "eurPerLiter": 1.925,
+      "note": "Consumer price with taxes. Price as published in euros per litre (file is euros per 1,000 litres)."
+    },
+    "diesel": {
+      "value": 2.238,
+      "date": "2026-09-21",
+      "source": "European Commission Weekly Oil Bulletin, automotive diesel with taxes",
+      "url": "https://energy.ec.europa.eu/data-and-analysis/weekly-oil-bulletin_en",
+      "eurPerLiter": 2.238,
+      "note": "Consumer price with taxes. Price as published in euros per litre (file is euros per 1,000 litres)."
+    },
+    "electricity": {
+      "value": 0.3272,
+      "date": "2025-S2",
+      "source": "Eurostat nrg_pc_204, household electricity",
+      "url": "https://ec.europa.eu/eurostat/databrowser/view/nrg_pc_204/default/table",
+      "nacPerKwh": 0.3272,
+      "note": "National currency per kWh. Band DC, 2,500–4,999 kWh, all taxes and levies included. Dataset updated 2026-09-24."
+    },
+    "grid": {
+      "gPerKwh": 117.22,
+      "year": 2025,
+      "unit": "gCO2/kWh",
+      "source": "Ember yearly electricity data, power-sector CO2 intensity",
+      "url": "https://ember-energy.org/data/yearly-electricity-data/",
+      "license": "CC BY 4.0",
+      "licenseUrl": "https://ember-energy.org/creative-commons/",
+      "note": "Generation intensity. No grid-loss factor is applied."
+    }
+  },
+  {
+    "code": "BE",
+    "name": {
+      "es": "Bélgica",
+      "en": "Belgium"
+    },
+    "currency": "EUR",
+    "gasolinePerLiter": 1.98762,
+    "dieselPerLiter": 2.38661,
+    "electricityPerKwh": 0.3499,
+    "gasoline": {
+      "value": 1.98762,
+      "date": "2026-09-21",
+      "source": "European Commission Weekly Oil Bulletin, Euro-super 95 with taxes",
+      "url": "https://energy.ec.europa.eu/data-and-analysis/weekly-oil-bulletin_en",
+      "eurPerLiter": 1.98762,
+      "note": "Consumer price with taxes. Price as published in euros per litre (file is euros per 1,000 litres)."
+    },
+    "diesel": {
+      "value": 2.38661,
+      "date": "2026-09-21",
+      "source": "European Commission Weekly Oil Bulletin, automotive diesel with taxes",
+      "url": "https://energy.ec.europa.eu/data-and-analysis/weekly-oil-bulletin_en",
+      "eurPerLiter": 2.38661,
+      "note": "Consumer price with taxes. Price as published in euros per litre (file is euros per 1,000 litres)."
+    },
+    "electricity": {
+      "value": 0.3499,
+      "date": "2025-S2",
+      "source": "Eurostat nrg_pc_204, household electricity",
+      "url": "https://ec.europa.eu/eurostat/databrowser/view/nrg_pc_204/default/table",
+      "nacPerKwh": 0.3499,
+      "note": "National currency per kWh. Band DC, 2,500–4,999 kWh, all taxes and levies included. Dataset updated 2026-09-24."
+    },
+    "grid": {
+      "gPerKwh": 109.3,
+      "year": 2025,
+      "unit": "gCO2/kWh",
+      "source": "Ember yearly electricity data, power-sector CO2 intensity",
+      "url": "https://ember-energy.org/data/yearly-electricity-data/",
+      "license": "CC BY 4.0",
+      "licenseUrl": "https://ember-energy.org/creative-commons/",
+      "note": "Generation intensity. No grid-loss factor is applied."
+    }
+  },
+  {
+    "code": "BG",
+    "name": {
+      "es": "Bulgaria",
+      "en": "Bulgaria"
+    },
+    "currency": "EUR",
+    "gasolinePerLiter": 1.6634,
+    "dieselPerLiter": 1.9156,
+    "electricityPerKwh": 0.13549442683300952,
+    "gasoline": {
+      "value": 1.6634,
+      "date": "2026-09-21",
+      "source": "European Commission Weekly Oil Bulletin, Euro-super 95 with taxes",
+      "url": "https://energy.ec.europa.eu/data-and-analysis/weekly-oil-bulletin_en",
+      "eurPerLiter": 1.6634,
+      "note": "Consumer price with taxes. Price as published in euros per litre (file is euros per 1,000 litres)."
+    },
+    "diesel": {
+      "value": 1.9156,
+      "date": "2026-09-21",
+      "source": "European Commission Weekly Oil Bulletin, automotive diesel with taxes",
+      "url": "https://energy.ec.europa.eu/data-and-analysis/weekly-oil-bulletin_en",
+      "eurPerLiter": 1.9156,
+      "note": "Consumer price with taxes. Price as published in euros per litre (file is euros per 1,000 litres)."
+    },
+    "electricity": {
+      "value": 0.13549442683300952,
+      "date": "2025-S2",
+      "source": "Eurostat nrg_pc_204, household electricity",
+      "url": "https://ec.europa.eu/eurostat/databrowser/view/nrg_pc_204/default/table",
+      "nacPerKwh": 0.265,
+      "note": "Eurostat national-currency price for 2025-S2 is 0.265 BGN/kWh. Bulgaria's prices in this snapshot are in euros. Converted with the ECB rate via Frankfurter on 2025-12-31: 1 EUR = 1.9558 BGN. The lev figure is not replaced. Dataset updated 2026-09-24."
+    },
+    "grid": {
+      "gPerKwh": 275.41,
+      "year": 2025,
+      "unit": "gCO2/kWh",
+      "source": "Ember yearly electricity data, power-sector CO2 intensity",
+      "url": "https://ember-energy.org/data/yearly-electricity-data/",
+      "license": "CC BY 4.0",
+      "licenseUrl": "https://ember-energy.org/creative-commons/",
+      "note": "Generation intensity. No grid-loss factor is applied."
+    }
+  },
+  {
+    "code": "HR",
+    "name": {
+      "es": "Croacia",
+      "en": "Croatia"
+    },
+    "currency": "EUR",
+    "gasolinePerLiter": 1.796,
+    "dieselPerLiter": 1.975,
+    "electricityPerKwh": 0.1658,
+    "gasoline": {
+      "value": 1.796,
+      "date": "2026-09-21",
+      "source": "European Commission Weekly Oil Bulletin, Euro-super 95 with taxes",
+      "url": "https://energy.ec.europa.eu/data-and-analysis/weekly-oil-bulletin_en",
+      "eurPerLiter": 1.796,
+      "note": "Consumer price with taxes. Price as published in euros per litre (file is euros per 1,000 litres)."
+    },
+    "diesel": {
+      "value": 1.975,
+      "date": "2026-09-21",
+      "source": "European Commission Weekly Oil Bulletin, automotive diesel with taxes",
+      "url": "https://energy.ec.europa.eu/data-and-analysis/weekly-oil-bulletin_en",
+      "eurPerLiter": 1.975,
+      "note": "Consumer price with taxes. Price as published in euros per litre (file is euros per 1,000 litres)."
+    },
+    "electricity": {
+      "value": 0.1658,
+      "date": "2025-S2",
+      "source": "Eurostat nrg_pc_204, household electricity",
+      "url": "https://ec.europa.eu/eurostat/databrowser/view/nrg_pc_204/default/table",
+      "nacPerKwh": 0.1658,
+      "note": "National currency per kWh. Band DC, 2,500–4,999 kWh, all taxes and levies included. Dataset updated 2026-09-24."
+    },
+    "grid": {
+      "gPerKwh": 158.5,
+      "year": 2025,
+      "unit": "gCO2/kWh",
+      "source": "Ember yearly electricity data, power-sector CO2 intensity",
+      "url": "https://ember-energy.org/data/yearly-electricity-data/",
+      "license": "CC BY 4.0",
+      "licenseUrl": "https://ember-energy.org/creative-commons/",
+      "note": "Generation intensity. No grid-loss factor is applied."
+    }
+  },
+  {
+    "code": "CY",
+    "name": {
+      "es": "Chipre",
+      "en": "Cyprus"
+    },
+    "currency": "EUR",
+    "gasolinePerLiter": 1.6769100000000001,
+    "dieselPerLiter": 1.94806,
+    "electricityPerKwh": 0.2774,
+    "gasoline": {
+      "value": 1.6769100000000001,
+      "date": "2026-09-21",
+      "source": "European Commission Weekly Oil Bulletin, Euro-super 95 with taxes",
+      "url": "https://energy.ec.europa.eu/data-and-analysis/weekly-oil-bulletin_en",
+      "eurPerLiter": 1.6769100000000001,
+      "note": "Consumer price with taxes. Price as published in euros per litre (file is euros per 1,000 litres)."
+    },
+    "diesel": {
+      "value": 1.94806,
+      "date": "2026-09-21",
+      "source": "European Commission Weekly Oil Bulletin, automotive diesel with taxes",
+      "url": "https://energy.ec.europa.eu/data-and-analysis/weekly-oil-bulletin_en",
+      "eurPerLiter": 1.94806,
+      "note": "Consumer price with taxes. Price as published in euros per litre (file is euros per 1,000 litres)."
+    },
+    "electricity": {
+      "value": 0.2774,
+      "date": "2025-S2",
+      "source": "Eurostat nrg_pc_204, household electricity",
+      "url": "https://ec.europa.eu/eurostat/databrowser/view/nrg_pc_204/default/table",
+      "nacPerKwh": 0.2774,
+      "note": "National currency per kWh. Band DC, 2,500–4,999 kWh, all taxes and levies included. Dataset updated 2026-09-24."
+    },
+    "grid": {
+      "gPerKwh": 489.0,
+      "year": 2025,
+      "unit": "gCO2/kWh",
+      "source": "Ember yearly electricity data, power-sector CO2 intensity",
+      "url": "https://ember-energy.org/data/yearly-electricity-data/",
+      "license": "CC BY 4.0",
+      "licenseUrl": "https://ember-energy.org/creative-commons/",
+      "note": "Generation intensity. No grid-loss factor is applied."
+    }
+  },
+  {
+    "code": "CZ",
+    "name": {
+      "es": "Chequia",
+      "en": "Czechia"
+    },
+    "currency": "CZK",
+    "gasolinePerLiter": 45.878,
+    "dieselPerLiter": 50.434000000000005,
+    "electricityPerKwh": 7.845,
+    "gasoline": {
+      "value": 45.878,
+      "date": "2026-09-21",
+      "source": "European Commission Weekly Oil Bulletin, Euro-super 95 with taxes",
+      "url": "https://energy.ec.europa.eu/data-and-analysis/weekly-oil-bulletin_en",
+      "eurPerLiter": 1.8839520367936926,
+      "note": "Consumer price with taxes. Oil Bulletin publishes this price in euros (1.88395 EUR/L petrol, 2.07104 EUR/L diesel). Shown in CZK with the ECB rate via Frankfurter on 2026-09-21: 1 EUR = 24.352 CZK. The euro price is not replaced."
+    },
+    "diesel": {
+      "value": 50.434000000000005,
+      "date": "2026-09-21",
+      "source": "European Commission Weekly Oil Bulletin, automotive diesel with taxes",
+      "url": "https://energy.ec.europa.eu/data-and-analysis/weekly-oil-bulletin_en",
+      "eurPerLiter": 2.071041392904074,
+      "note": "Consumer price with taxes. Oil Bulletin publishes this price in euros (1.88395 EUR/L petrol, 2.07104 EUR/L diesel). Shown in CZK with the ECB rate via Frankfurter on 2026-09-21: 1 EUR = 24.352 CZK. The euro price is not replaced."
+    },
+    "electricity": {
+      "value": 7.845,
+      "date": "2025-S2",
+      "source": "Eurostat nrg_pc_204, household electricity",
+      "url": "https://ec.europa.eu/eurostat/databrowser/view/nrg_pc_204/default/table",
+      "nacPerKwh": 7.845,
+      "note": "National currency per kWh. Band DC, 2,500–4,999 kWh, all taxes and levies included. Dataset updated 2026-09-24."
+    },
+    "grid": {
+      "gPerKwh": 401.46,
+      "year": 2025,
+      "unit": "gCO2/kWh",
+      "source": "Ember yearly electricity data, power-sector CO2 intensity",
+      "url": "https://ember-energy.org/data/yearly-electricity-data/",
+      "license": "CC BY 4.0",
+      "licenseUrl": "https://ember-energy.org/creative-commons/",
+      "note": "Generation intensity. No grid-loss factor is applied."
+    }
+  },
+  {
+    "code": "DK",
+    "name": {
+      "es": "Dinamarca",
+      "en": "Denmark"
+    },
+    "currency": "DKK",
+    "gasolinePerLiter": 19.57,
+    "dieselPerLiter": 19.1,
+    "electricityPerKwh": 2.4728,
+    "gasoline": {
+      "value": 19.57,
+      "date": "2026-09-21",
+      "source": "European Commission Weekly Oil Bulletin, Euro-super 95 with taxes",
+      "url": "https://energy.ec.europa.eu/data-and-analysis/weekly-oil-bulletin_en",
+      "eurPerLiter": 2.6178850912982408,
+      "note": "Consumer price with taxes. Oil Bulletin publishes this price in euros (2.61789 EUR/L petrol, 2.55501 EUR/L diesel). Shown in DKK with the ECB rate via Frankfurter on 2026-09-21: 1 EUR = 7.4755 DKK. The euro price is not replaced."
+    },
+    "diesel": {
+      "value": 19.1,
+      "date": "2026-09-21",
+      "source": "European Commission Weekly Oil Bulletin, automotive diesel with taxes",
+      "url": "https://energy.ec.europa.eu/data-and-analysis/weekly-oil-bulletin_en",
+      "eurPerLiter": 2.5550130426058457,
+      "note": "Consumer price with taxes. Oil Bulletin publishes this price in euros (2.61789 EUR/L petrol, 2.55501 EUR/L diesel). Shown in DKK with the ECB rate via Frankfurter on 2026-09-21: 1 EUR = 7.4755 DKK. The euro price is not replaced."
+    },
+    "electricity": {
+      "value": 2.4728,
+      "date": "2025-S2",
+      "source": "Eurostat nrg_pc_204, household electricity",
+      "url": "https://ec.europa.eu/eurostat/databrowser/view/nrg_pc_204/default/table",
+      "nacPerKwh": 2.4728,
+      "note": "National currency per kWh. Band DC, 2,500–4,999 kWh, all taxes and levies included. Dataset updated 2026-09-24."
+    },
+    "grid": {
+      "gPerKwh": 99.62,
+      "year": 2025,
+      "unit": "gCO2/kWh",
+      "source": "Ember yearly electricity data, power-sector CO2 intensity",
+      "url": "https://ember-energy.org/data/yearly-electricity-data/",
+      "license": "CC BY 4.0",
+      "licenseUrl": "https://ember-energy.org/creative-commons/",
+      "note": "Generation intensity. No grid-loss factor is applied."
+    }
+  },
+  {
+    "code": "EE",
+    "name": {
+      "es": "Estonia",
+      "en": "Estonia"
+    },
+    "currency": "EUR",
+    "gasolinePerLiter": 1.917,
+    "dieselPerLiter": 2.113,
+    "electricityPerKwh": 0.2303,
+    "gasoline": {
+      "value": 1.917,
+      "date": "2026-09-21",
+      "source": "European Commission Weekly Oil Bulletin, Euro-super 95 with taxes",
+      "url": "https://energy.ec.europa.eu/data-and-analysis/weekly-oil-bulletin_en",
+      "eurPerLiter": 1.917,
+      "note": "Consumer price with taxes. Price as published in euros per litre (file is euros per 1,000 litres)."
+    },
+    "diesel": {
+      "value": 2.113,
+      "date": "2026-09-21",
+      "source": "European Commission Weekly Oil Bulletin, automotive diesel with taxes",
+      "url": "https://energy.ec.europa.eu/data-and-analysis/weekly-oil-bulletin_en",
+      "eurPerLiter": 2.113,
+      "note": "Consumer price with taxes. Price as published in euros per litre (file is euros per 1,000 litres)."
+    },
+    "electricity": {
+      "value": 0.2303,
+      "date": "2025-S2",
+      "source": "Eurostat nrg_pc_204, household electricity",
+      "url": "https://ec.europa.eu/eurostat/databrowser/view/nrg_pc_204/default/table",
+      "nacPerKwh": 0.2303,
+      "note": "National currency per kWh. Band DC, 2,500–4,999 kWh, all taxes and levies included. Dataset updated 2026-09-24."
+    },
+    "grid": {
+      "gPerKwh": 316.64,
+      "year": 2025,
+      "unit": "gCO2/kWh",
+      "source": "Ember yearly electricity data, power-sector CO2 intensity",
+      "url": "https://ember-energy.org/data/yearly-electricity-data/",
+      "license": "CC BY 4.0",
+      "licenseUrl": "https://ember-energy.org/creative-commons/",
+      "note": "Generation intensity. No grid-loss factor is applied."
+    }
+  },
+  {
+    "code": "FI",
+    "name": {
+      "es": "Finlandia",
+      "en": "Finland"
+    },
+    "currency": "EUR",
+    "gasolinePerLiter": 2.3635500000000005,
+    "dieselPerLiter": 2.5553809523809528,
+    "electricityPerKwh": 0.2254,
+    "gasoline": {
+      "value": 2.3635500000000005,
+      "date": "2026-09-21",
+      "source": "European Commission Weekly Oil Bulletin, Euro-super 95 with taxes",
+      "url": "https://energy.ec.europa.eu/data-and-analysis/weekly-oil-bulletin_en",
+      "eurPerLiter": 2.3635500000000005,
+      "note": "Consumer price with taxes. Price as published in euros per litre (file is euros per 1,000 litres)."
+    },
+    "diesel": {
+      "value": 2.5553809523809528,
+      "date": "2026-09-21",
+      "source": "European Commission Weekly Oil Bulletin, automotive diesel with taxes",
+      "url": "https://energy.ec.europa.eu/data-and-analysis/weekly-oil-bulletin_en",
+      "eurPerLiter": 2.5553809523809528,
+      "note": "Consumer price with taxes. Price as published in euros per litre (file is euros per 1,000 litres)."
+    },
+    "electricity": {
+      "value": 0.2254,
+      "date": "2025-S2",
+      "source": "Eurostat nrg_pc_204, household electricity",
+      "url": "https://ec.europa.eu/eurostat/databrowser/view/nrg_pc_204/default/table",
+      "nacPerKwh": 0.2254,
+      "note": "National currency per kWh. Band DC, 2,500–4,999 kWh, all taxes and levies included. Dataset updated 2026-09-24."
+    },
+    "grid": {
+      "gPerKwh": 57.47,
+      "year": 2025,
+      "unit": "gCO2/kWh",
+      "source": "Ember yearly electricity data, power-sector CO2 intensity",
+      "url": "https://ember-energy.org/data/yearly-electricity-data/",
+      "license": "CC BY 4.0",
+      "licenseUrl": "https://ember-energy.org/creative-commons/",
+      "note": "Generation intensity. No grid-loss factor is applied."
+    }
+  },
+  {
+    "code": "FR",
+    "name": {
+      "es": "Francia",
+      "en": "France"
+    },
+    "currency": "EUR",
+    "gasolinePerLiter": 2.2191799999999997,
+    "dieselPerLiter": 2.38345,
+    "electricityPerKwh": 0.2561,
+    "gasoline": {
+      "value": 2.2191799999999997,
+      "date": "2026-09-21",
+      "source": "European Commission Weekly Oil Bulletin, Euro-super 95 with taxes",
+      "url": "https://energy.ec.europa.eu/data-and-analysis/weekly-oil-bulletin_en",
+      "eurPerLiter": 2.2191799999999997,
+      "note": "Consumer price with taxes. Price as published in euros per litre (file is euros per 1,000 litres)."
+    },
+    "diesel": {
+      "value": 2.38345,
+      "date": "2026-09-21",
+      "source": "European Commission Weekly Oil Bulletin, automotive diesel with taxes",
+      "url": "https://energy.ec.europa.eu/data-and-analysis/weekly-oil-bulletin_en",
+      "eurPerLiter": 2.38345,
+      "note": "Consumer price with taxes. Price as published in euros per litre (file is euros per 1,000 litres)."
+    },
+    "electricity": {
+      "value": 0.2561,
+      "date": "2025-S2",
+      "source": "Eurostat nrg_pc_204, household electricity",
+      "url": "https://ec.europa.eu/eurostat/databrowser/view/nrg_pc_204/default/table",
+      "nacPerKwh": 0.2561,
+      "note": "National currency per kWh. Band DC, 2,500–4,999 kWh, all taxes and levies included. Dataset updated 2026-09-24."
+    },
+    "grid": {
+      "gPerKwh": 41.45,
+      "year": 2025,
+      "unit": "gCO2/kWh",
+      "source": "Ember yearly electricity data, power-sector CO2 intensity",
+      "url": "https://ember-energy.org/data/yearly-electricity-data/",
+      "license": "CC BY 4.0",
+      "licenseUrl": "https://ember-energy.org/creative-commons/",
+      "note": "Generation intensity. No grid-loss factor is applied."
+    }
+  },
+  {
+    "code": "DE",
+    "name": {
+      "es": "Alemania",
+      "en": "Germany"
+    },
+    "currency": "EUR",
+    "gasolinePerLiter": 2.348,
+    "dieselPerLiter": 2.457,
+    "electricityPerKwh": 0.3869,
+    "gasoline": {
+      "value": 2.348,
+      "date": "2026-09-21",
+      "source": "European Commission Weekly Oil Bulletin, Euro-super 95 with taxes",
+      "url": "https://energy.ec.europa.eu/data-and-analysis/weekly-oil-bulletin_en",
+      "eurPerLiter": 2.348,
+      "note": "Consumer price with taxes. Price as published in euros per litre (file is euros per 1,000 litres)."
+    },
+    "diesel": {
+      "value": 2.457,
+      "date": "2026-09-21",
+      "source": "European Commission Weekly Oil Bulletin, automotive diesel with taxes",
+      "url": "https://energy.ec.europa.eu/data-and-analysis/weekly-oil-bulletin_en",
+      "eurPerLiter": 2.457,
+      "note": "Consumer price with taxes. Price as published in euros per litre (file is euros per 1,000 litres)."
+    },
+    "electricity": {
+      "value": 0.3869,
+      "date": "2025-S2",
+      "source": "Eurostat nrg_pc_204, household electricity",
+      "url": "https://ec.europa.eu/eurostat/databrowser/view/nrg_pc_204/default/table",
+      "nacPerKwh": 0.3869,
+      "note": "National currency per kWh. Band DC, 2,500–4,999 kWh, all taxes and levies included. Dataset updated 2026-09-24."
+    },
+    "grid": {
+      "gPerKwh": 329.65,
+      "year": 2025,
+      "unit": "gCO2/kWh",
+      "source": "Ember yearly electricity data, power-sector CO2 intensity",
+      "url": "https://ember-energy.org/data/yearly-electricity-data/",
+      "license": "CC BY 4.0",
+      "licenseUrl": "https://ember-energy.org/creative-commons/",
+      "note": "Generation intensity. No grid-loss factor is applied."
+    }
+  },
+  {
+    "code": "GR",
+    "name": {
+      "es": "Grecia",
+      "en": "Greece"
+    },
+    "currency": "EUR",
+    "gasolinePerLiter": 2.197,
+    "dieselPerLiter": 2.224,
+    "electricityPerKwh": 0.2381,
+    "gasoline": {
+      "value": 2.197,
+      "date": "2026-09-21",
+      "source": "European Commission Weekly Oil Bulletin, Euro-super 95 with taxes",
+      "url": "https://energy.ec.europa.eu/data-and-analysis/weekly-oil-bulletin_en",
+      "eurPerLiter": 2.197,
+      "note": "Consumer price with taxes. Price as published in euros per litre (file is euros per 1,000 litres)."
+    },
+    "diesel": {
+      "value": 2.224,
+      "date": "2026-09-21",
+      "source": "European Commission Weekly Oil Bulletin, automotive diesel with taxes",
+      "url": "https://energy.ec.europa.eu/data-and-analysis/weekly-oil-bulletin_en",
+      "eurPerLiter": 2.224,
+      "note": "Consumer price with taxes. Price as published in euros per litre (file is euros per 1,000 litres)."
+    },
+    "electricity": {
+      "value": 0.2381,
+      "date": "2025-S2",
+      "source": "Eurostat nrg_pc_204, household electricity",
+      "url": "https://ec.europa.eu/eurostat/databrowser/view/nrg_pc_204/default/table",
+      "nacPerKwh": 0.2381,
+      "note": "National currency per kWh. Band DC, 2,500–4,999 kWh, all taxes and levies included. Dataset updated 2026-09-24."
+    },
+    "grid": {
+      "gPerKwh": 324.41,
+      "year": 2025,
+      "unit": "gCO2/kWh",
+      "source": "Ember yearly electricity data, power-sector CO2 intensity",
+      "url": "https://ember-energy.org/data/yearly-electricity-data/",
+      "license": "CC BY 4.0",
+      "licenseUrl": "https://ember-energy.org/creative-commons/",
+      "note": "Generation intensity. No grid-loss factor is applied."
+    }
+  },
+  {
+    "code": "HU",
+    "name": {
+      "es": "Hungría",
+      "en": "Hungary"
+    },
+    "currency": "HUF",
+    "gasolinePerLiter": 634.8792302819932,
+    "dieselPerLiter": 709.1413179667252,
+    "electricityPerKwh": 42.3146,
+    "gasoline": {
+      "value": 634.8792302819932,
+      "date": "2026-09-21",
+      "source": "European Commission Weekly Oil Bulletin, Euro-super 95 with taxes",
+      "url": "https://energy.ec.europa.eu/data-and-analysis/weekly-oil-bulletin_en",
+      "eurPerLiter": 1.7518742557450142,
+      "note": "Consumer price with taxes. Oil Bulletin publishes this price in euros (1.75187 EUR/L petrol, 1.95679 EUR/L diesel). Shown in HUF with the ECB rate via Frankfurter on 2026-09-21: 1 EUR = 362.4 HUF. The euro price is not replaced."
+    },
+    "diesel": {
+      "value": 709.1413179667252,
+      "date": "2026-09-21",
+      "source": "European Commission Weekly Oil Bulletin, automotive diesel with taxes",
+      "url": "https://energy.ec.europa.eu/data-and-analysis/weekly-oil-bulletin_en",
+      "eurPerLiter": 1.956791716243723,
+      "note": "Consumer price with taxes. Oil Bulletin publishes this price in euros (1.75187 EUR/L petrol, 1.95679 EUR/L diesel). Shown in HUF with the ECB rate via Frankfurter on 2026-09-21: 1 EUR = 362.4 HUF. The euro price is not replaced."
+    },
+    "electricity": {
+      "value": 42.3146,
+      "date": "2025-S2",
+      "source": "Eurostat nrg_pc_204, household electricity",
+      "url": "https://ec.europa.eu/eurostat/databrowser/view/nrg_pc_204/default/table",
+      "nacPerKwh": 42.3146,
+      "note": "National currency per kWh. Band DC, 2,500–4,999 kWh, all taxes and levies included. Dataset updated 2026-09-24."
+    },
+    "grid": {
+      "gPerKwh": 163.02,
+      "year": 2025,
+      "unit": "gCO2/kWh",
+      "source": "Ember yearly electricity data, power-sector CO2 intensity",
+      "url": "https://ember-energy.org/data/yearly-electricity-data/",
+      "license": "CC BY 4.0",
+      "licenseUrl": "https://ember-energy.org/creative-commons/",
+      "note": "Generation intensity. No grid-loss factor is applied."
+    }
+  },
+  {
+    "code": "IE",
+    "name": {
+      "es": "Irlanda",
+      "en": "Ireland"
+    },
+    "currency": "EUR",
+    "gasolinePerLiter": 1.9446,
+    "dieselPerLiter": 2.0496999999999996,
+    "electricityPerKwh": 0.4042,
+    "gasoline": {
+      "value": 1.9446,
+      "date": "2026-09-21",
+      "source": "European Commission Weekly Oil Bulletin, Euro-super 95 with taxes",
+      "url": "https://energy.ec.europa.eu/data-and-analysis/weekly-oil-bulletin_en",
+      "eurPerLiter": 1.9446,
+      "note": "Consumer price with taxes. Price as published in euros per litre (file is euros per 1,000 litres)."
+    },
+    "diesel": {
+      "value": 2.0496999999999996,
+      "date": "2026-09-21",
+      "source": "European Commission Weekly Oil Bulletin, automotive diesel with taxes",
+      "url": "https://energy.ec.europa.eu/data-and-analysis/weekly-oil-bulletin_en",
+      "eurPerLiter": 2.0496999999999996,
+      "note": "Consumer price with taxes. Price as published in euros per litre (file is euros per 1,000 litres)."
+    },
+    "electricity": {
+      "value": 0.4042,
+      "date": "2025-S2",
+      "source": "Eurostat nrg_pc_204, household electricity",
+      "url": "https://ec.europa.eu/eurostat/databrowser/view/nrg_pc_204/default/table",
+      "nacPerKwh": 0.4042,
+      "note": "National currency per kWh. Band DC, 2,500–4,999 kWh, all taxes and levies included. Dataset updated 2026-09-24."
+    },
+    "grid": {
+      "gPerKwh": 255.9,
+      "year": 2025,
+      "unit": "gCO2/kWh",
+      "source": "Ember yearly electricity data, power-sector CO2 intensity",
+      "url": "https://ember-energy.org/data/yearly-electricity-data/",
+      "license": "CC BY 4.0",
+      "licenseUrl": "https://ember-energy.org/creative-commons/",
+      "note": "Generation intensity. No grid-loss factor is applied."
+    }
+  },
+  {
+    "code": "IT",
+    "name": {
+      "es": "Italia",
+      "en": "Italy"
+    },
+    "currency": "EUR",
+    "gasolinePerLiter": 2.1412199999999997,
+    "dieselPerLiter": 2.28143,
+    "electricityPerKwh": 0.2966,
+    "gasoline": {
+      "value": 2.1412199999999997,
+      "date": "2026-09-21",
+      "source": "European Commission Weekly Oil Bulletin, Euro-super 95 with taxes",
+      "url": "https://energy.ec.europa.eu/data-and-analysis/weekly-oil-bulletin_en",
+      "eurPerLiter": 2.1412199999999997,
+      "note": "Consumer price with taxes. Price as published in euros per litre (file is euros per 1,000 litres)."
+    },
+    "diesel": {
+      "value": 2.28143,
+      "date": "2026-09-21",
+      "source": "European Commission Weekly Oil Bulletin, automotive diesel with taxes",
+      "url": "https://energy.ec.europa.eu/data-and-analysis/weekly-oil-bulletin_en",
+      "eurPerLiter": 2.28143,
+      "note": "Consumer price with taxes. Price as published in euros per litre (file is euros per 1,000 litres)."
+    },
+    "electricity": {
+      "value": 0.2966,
+      "date": "2025-S2",
+      "source": "Eurostat nrg_pc_204, household electricity",
+      "url": "https://ec.europa.eu/eurostat/databrowser/view/nrg_pc_204/default/table",
+      "nacPerKwh": 0.2966,
+      "note": "National currency per kWh. Band DC, 2,500–4,999 kWh, all taxes and levies included. Dataset updated 2026-09-24."
+    },
+    "grid": {
+      "gPerKwh": 284.63,
+      "year": 2025,
+      "unit": "gCO2/kWh",
+      "source": "Ember yearly electricity data, power-sector CO2 intensity",
+      "url": "https://ember-energy.org/data/yearly-electricity-data/",
+      "license": "CC BY 4.0",
+      "licenseUrl": "https://ember-energy.org/creative-commons/",
+      "note": "Generation intensity. No grid-loss factor is applied."
+    }
+  },
+  {
+    "code": "LV",
+    "name": {
+      "es": "Letonia",
+      "en": "Latvia"
+    },
+    "currency": "EUR",
+    "gasolinePerLiter": 1.9972,
+    "dieselPerLiter": 2.1685,
+    "electricityPerKwh": 0.2452,
+    "gasoline": {
+      "value": 1.9972,
+      "date": "2026-09-21",
+      "source": "European Commission Weekly Oil Bulletin, Euro-super 95 with taxes",
+      "url": "https://energy.ec.europa.eu/data-and-analysis/weekly-oil-bulletin_en",
+      "eurPerLiter": 1.9972,
+      "note": "Consumer price with taxes. Price as published in euros per litre (file is euros per 1,000 litres)."
+    },
+    "diesel": {
+      "value": 2.1685,
+      "date": "2026-09-21",
+      "source": "European Commission Weekly Oil Bulletin, automotive diesel with taxes",
+      "url": "https://energy.ec.europa.eu/data-and-analysis/weekly-oil-bulletin_en",
+      "eurPerLiter": 2.1685,
+      "note": "Consumer price with taxes. Price as published in euros per litre (file is euros per 1,000 litres)."
+    },
+    "electricity": {
+      "value": 0.2452,
+      "date": "2025-S2",
+      "source": "Eurostat nrg_pc_204, household electricity",
+      "url": "https://ec.europa.eu/eurostat/databrowser/view/nrg_pc_204/default/table",
+      "nacPerKwh": 0.2452,
+      "note": "National currency per kWh. Band DC, 2,500–4,999 kWh, all taxes and levies included. Dataset updated 2026-09-24."
+    },
+    "grid": {
+      "gPerKwh": 134.28,
+      "year": 2025,
+      "unit": "gCO2/kWh",
+      "source": "Ember yearly electricity data, power-sector CO2 intensity",
+      "url": "https://ember-energy.org/data/yearly-electricity-data/",
+      "license": "CC BY 4.0",
+      "licenseUrl": "https://ember-energy.org/creative-commons/",
+      "note": "Generation intensity. No grid-loss factor is applied."
+    }
+  },
+  {
+    "code": "LT",
+    "name": {
+      "es": "Lituania",
+      "en": "Lithuania"
+    },
+    "currency": "EUR",
+    "gasolinePerLiter": 1.9499300000000002,
+    "dieselPerLiter": 2.25764,
+    "electricityPerKwh": 0.1955,
+    "gasoline": {
+      "value": 1.9499300000000002,
+      "date": "2026-09-21",
+      "source": "European Commission Weekly Oil Bulletin, Euro-super 95 with taxes",
+      "url": "https://energy.ec.europa.eu/data-and-analysis/weekly-oil-bulletin_en",
+      "eurPerLiter": 1.9499300000000002,
+      "note": "Consumer price with taxes. Price as published in euros per litre (file is euros per 1,000 litres)."
+    },
+    "diesel": {
+      "value": 2.25764,
+      "date": "2026-09-21",
+      "source": "European Commission Weekly Oil Bulletin, automotive diesel with taxes",
+      "url": "https://energy.ec.europa.eu/data-and-analysis/weekly-oil-bulletin_en",
+      "eurPerLiter": 2.25764,
+      "note": "Consumer price with taxes. Price as published in euros per litre (file is euros per 1,000 litres)."
+    },
+    "electricity": {
+      "value": 0.1955,
+      "date": "2025-S2",
+      "source": "Eurostat nrg_pc_204, household electricity",
+      "url": "https://ec.europa.eu/eurostat/databrowser/view/nrg_pc_204/default/table",
+      "nacPerKwh": 0.1955,
+      "note": "National currency per kWh. Band DC, 2,500–4,999 kWh, all taxes and levies included. Dataset updated 2026-09-24."
+    },
+    "grid": {
+      "gPerKwh": 138.51,
+      "year": 2025,
+      "unit": "gCO2/kWh",
+      "source": "Ember yearly electricity data, power-sector CO2 intensity",
+      "url": "https://ember-energy.org/data/yearly-electricity-data/",
+      "license": "CC BY 4.0",
+      "licenseUrl": "https://ember-energy.org/creative-commons/",
+      "note": "Generation intensity. No grid-loss factor is applied."
+    }
+  },
+  {
+    "code": "LU",
+    "name": {
+      "es": "Luxemburgo",
+      "en": "Luxembourg"
+    },
+    "currency": "EUR",
+    "gasolinePerLiter": 1.849,
+    "dieselPerLiter": 2.114,
+    "electricityPerKwh": 0.2665,
+    "gasoline": {
+      "value": 1.849,
+      "date": "2026-09-21",
+      "source": "European Commission Weekly Oil Bulletin, Euro-super 95 with taxes",
+      "url": "https://energy.ec.europa.eu/data-and-analysis/weekly-oil-bulletin_en",
+      "eurPerLiter": 1.849,
+      "note": "Consumer price with taxes. Price as published in euros per litre (file is euros per 1,000 litres)."
+    },
+    "diesel": {
+      "value": 2.114,
+      "date": "2026-09-21",
+      "source": "European Commission Weekly Oil Bulletin, automotive diesel with taxes",
+      "url": "https://energy.ec.europa.eu/data-and-analysis/weekly-oil-bulletin_en",
+      "eurPerLiter": 2.114,
+      "note": "Consumer price with taxes. Price as published in euros per litre (file is euros per 1,000 litres)."
+    },
+    "electricity": {
+      "value": 0.2665,
+      "date": "2025-S2",
+      "source": "Eurostat nrg_pc_204, household electricity",
+      "url": "https://ec.europa.eu/eurostat/databrowser/view/nrg_pc_204/default/table",
+      "nacPerKwh": 0.2665,
+      "note": "National currency per kWh. Band DC, 2,500–4,999 kWh, all taxes and levies included. Dataset updated 2026-09-24."
+    },
+    "grid": {
+      "gPerKwh": 123.38,
+      "year": 2025,
+      "unit": "gCO2/kWh",
+      "source": "Ember yearly electricity data, power-sector CO2 intensity",
+      "url": "https://ember-energy.org/data/yearly-electricity-data/",
+      "license": "CC BY 4.0",
+      "licenseUrl": "https://ember-energy.org/creative-commons/",
+      "note": "Generation intensity. No grid-loss factor is applied."
+    }
+  },
+  {
+    "code": "MT",
+    "name": {
+      "es": "Malta",
+      "en": "Malta"
+    },
+    "currency": "EUR",
+    "gasolinePerLiter": 1.34,
+    "dieselPerLiter": 1.21,
+    "electricityPerKwh": 0.1282,
+    "gasoline": {
+      "value": 1.34,
+      "date": "2026-09-21",
+      "source": "European Commission Weekly Oil Bulletin, Euro-super 95 with taxes",
+      "url": "https://energy.ec.europa.eu/data-and-analysis/weekly-oil-bulletin_en",
+      "eurPerLiter": 1.34,
+      "note": "Consumer price with taxes. Price as published in euros per litre (file is euros per 1,000 litres)."
+    },
+    "diesel": {
+      "value": 1.21,
+      "date": "2026-09-21",
+      "source": "European Commission Weekly Oil Bulletin, automotive diesel with taxes",
+      "url": "https://energy.ec.europa.eu/data-and-analysis/weekly-oil-bulletin_en",
+      "eurPerLiter": 1.21,
+      "note": "Consumer price with taxes. Price as published in euros per litre (file is euros per 1,000 litres)."
+    },
+    "electricity": {
+      "value": 0.1282,
+      "date": "2025-S2",
+      "source": "Eurostat nrg_pc_204, household electricity",
+      "url": "https://ec.europa.eu/eurostat/databrowser/view/nrg_pc_204/default/table",
+      "nacPerKwh": 0.1282,
+      "note": "National currency per kWh. Band DC, 2,500–4,999 kWh, all taxes and levies included. Dataset updated 2026-09-24."
+    },
+    "grid": {
+      "gPerKwh": 484.02,
+      "year": 2025,
+      "unit": "gCO2/kWh",
+      "source": "Ember yearly electricity data, power-sector CO2 intensity",
+      "url": "https://ember-energy.org/data/yearly-electricity-data/",
+      "license": "CC BY 4.0",
+      "licenseUrl": "https://ember-energy.org/creative-commons/",
+      "note": "Generation intensity. No grid-loss factor is applied."
+    }
+  },
+  {
+    "code": "NL",
+    "name": {
+      "es": "Países Bajos",
+      "en": "Netherlands"
+    },
+    "currency": "EUR",
+    "gasolinePerLiter": 2.44882,
+    "dieselPerLiter": 2.57902,
+    "electricityPerKwh": 0.2558,
+    "gasoline": {
+      "value": 2.44882,
+      "date": "2026-09-21",
+      "source": "European Commission Weekly Oil Bulletin, Euro-super 95 with taxes",
+      "url": "https://energy.ec.europa.eu/data-and-analysis/weekly-oil-bulletin_en",
+      "eurPerLiter": 2.44882,
+      "note": "Consumer price with taxes. Price as published in euros per litre (file is euros per 1,000 litres)."
+    },
+    "diesel": {
+      "value": 2.57902,
+      "date": "2026-09-21",
+      "source": "European Commission Weekly Oil Bulletin, automotive diesel with taxes",
+      "url": "https://energy.ec.europa.eu/data-and-analysis/weekly-oil-bulletin_en",
+      "eurPerLiter": 2.57902,
+      "note": "Consumer price with taxes. Price as published in euros per litre (file is euros per 1,000 litres)."
+    },
+    "electricity": {
+      "value": 0.2558,
+      "date": "2025-S2",
+      "source": "Eurostat nrg_pc_204, household electricity",
+      "url": "https://ec.europa.eu/eurostat/databrowser/view/nrg_pc_204/default/table",
+      "nacPerKwh": 0.2558,
+      "note": "National currency per kWh. Band DC, 2,500–4,999 kWh, all taxes and levies included. Dataset updated 2026-09-24."
+    },
+    "grid": {
+      "gPerKwh": 253.56,
+      "year": 2025,
+      "unit": "gCO2/kWh",
+      "source": "Ember yearly electricity data, power-sector CO2 intensity",
+      "url": "https://ember-energy.org/data/yearly-electricity-data/",
+      "license": "CC BY 4.0",
+      "licenseUrl": "https://ember-energy.org/creative-commons/",
+      "note": "Generation intensity. No grid-loss factor is applied."
+    }
+  },
+  {
+    "code": "PL",
+    "name": {
+      "es": "Polonia",
+      "en": "Poland"
+    },
+    "currency": "PLN",
+    "gasolinePerLiter": 7.9215680049506405,
+    "dieselPerLiter": 8.876299384231777,
+    "electricityPerKwh": 1.1505,
+    "gasoline": {
+      "value": 7.9215680049506405,
+      "date": "2026-09-21",
+      "source": "European Commission Weekly Oil Bulletin, Euro-super 95 with taxes",
+      "url": "https://energy.ec.europa.eu/data-and-analysis/weekly-oil-bulletin_en",
+      "eurPerLiter": 1.8197950849875122,
+      "note": "Consumer price with taxes. Oil Bulletin publishes this price in euros (1.81980 EUR/L petrol, 2.03912 EUR/L diesel). Shown in PLN with the ECB rate via Frankfurter on 2026-09-21: 1 EUR = 4.353 PLN. The euro price is not replaced."
+    },
+    "diesel": {
+      "value": 8.876299384231777,
+      "date": "2026-09-21",
+      "source": "European Commission Weekly Oil Bulletin, automotive diesel with taxes",
+      "url": "https://energy.ec.europa.eu/data-and-analysis/weekly-oil-bulletin_en",
+      "eurPerLiter": 2.0391223028329377,
+      "note": "Consumer price with taxes. Oil Bulletin publishes this price in euros (1.81980 EUR/L petrol, 2.03912 EUR/L diesel). Shown in PLN with the ECB rate via Frankfurter on 2026-09-21: 1 EUR = 4.353 PLN. The euro price is not replaced."
+    },
+    "electricity": {
+      "value": 1.1505,
+      "date": "2025-S2",
+      "source": "Eurostat nrg_pc_204, household electricity",
+      "url": "https://ec.europa.eu/eurostat/databrowser/view/nrg_pc_204/default/table",
+      "nacPerKwh": 1.1505,
+      "note": "National currency per kWh. Band DC, 2,500–4,999 kWh, all taxes and levies included. Dataset updated 2026-09-24."
+    },
+    "grid": {
+      "gPerKwh": 590.8,
+      "year": 2025,
+      "unit": "gCO2/kWh",
+      "source": "Ember yearly electricity data, power-sector CO2 intensity",
+      "url": "https://ember-energy.org/data/yearly-electricity-data/",
+      "license": "CC BY 4.0",
+      "licenseUrl": "https://ember-energy.org/creative-commons/",
+      "note": "Generation intensity. No grid-loss factor is applied."
+    }
+  },
+  {
+    "code": "PT",
+    "name": {
+      "es": "Portugal",
+      "en": "Portugal"
+    },
+    "currency": "EUR",
+    "gasolinePerLiter": 2.107,
+    "dieselPerLiter": 2.21,
+    "electricityPerKwh": 0.2435,
+    "gasoline": {
+      "value": 2.107,
+      "date": "2026-09-21",
+      "source": "European Commission Weekly Oil Bulletin, Euro-super 95 with taxes",
+      "url": "https://energy.ec.europa.eu/data-and-analysis/weekly-oil-bulletin_en",
+      "eurPerLiter": 2.107,
+      "note": "Consumer price with taxes. Price as published in euros per litre (file is euros per 1,000 litres)."
+    },
+    "diesel": {
+      "value": 2.21,
+      "date": "2026-09-21",
+      "source": "European Commission Weekly Oil Bulletin, automotive diesel with taxes",
+      "url": "https://energy.ec.europa.eu/data-and-analysis/weekly-oil-bulletin_en",
+      "eurPerLiter": 2.21,
+      "note": "Consumer price with taxes. Price as published in euros per litre (file is euros per 1,000 litres)."
+    },
+    "electricity": {
+      "value": 0.2435,
+      "date": "2025-S2",
+      "source": "Eurostat nrg_pc_204, household electricity",
+      "url": "https://ec.europa.eu/eurostat/databrowser/view/nrg_pc_204/default/table",
+      "nacPerKwh": 0.2435,
+      "note": "National currency per kWh. Band DC, 2,500–4,999 kWh, all taxes and levies included. Dataset updated 2026-09-24."
+    },
+    "grid": {
+      "gPerKwh": 128.08,
+      "year": 2025,
+      "unit": "gCO2/kWh",
+      "source": "Ember yearly electricity data, power-sector CO2 intensity",
+      "url": "https://ember-energy.org/data/yearly-electricity-data/",
+      "license": "CC BY 4.0",
+      "licenseUrl": "https://ember-energy.org/creative-commons/",
+      "note": "Generation intensity. No grid-loss factor is applied."
+    }
+  },
+  {
+    "code": "RO",
+    "name": {
+      "es": "Rumanía",
+      "en": "Romania"
+    },
+    "currency": "RON",
+    "gasolinePerLiter": 9.95544,
+    "dieselPerLiter": 11.017119999999998,
+    "electricityPerKwh": 1.4696,
+    "gasoline": {
+      "value": 9.95544,
+      "date": "2026-09-21",
+      "source": "European Commission Weekly Oil Bulletin, Euro-super 95 with taxes",
+      "url": "https://energy.ec.europa.eu/data-and-analysis/weekly-oil-bulletin_en",
+      "eurPerLiter": 1.8909795429939027,
+      "note": "Consumer price with taxes. Oil Bulletin publishes this price in euros (1.89098 EUR/L petrol, 2.09264 EUR/L diesel). Shown in RON with the ECB rate via Frankfurter on 2026-09-21: 1 EUR = 5.2647 RON. The euro price is not replaced."
+    },
+    "diesel": {
+      "value": 11.017119999999998,
+      "date": "2026-09-21",
+      "source": "European Commission Weekly Oil Bulletin, automotive diesel with taxes",
+      "url": "https://energy.ec.europa.eu/data-and-analysis/weekly-oil-bulletin_en",
+      "eurPerLiter": 2.0926396565806216,
+      "note": "Consumer price with taxes. Oil Bulletin publishes this price in euros (1.89098 EUR/L petrol, 2.09264 EUR/L diesel). Shown in RON with the ECB rate via Frankfurter on 2026-09-21: 1 EUR = 5.2647 RON. The euro price is not replaced."
+    },
+    "electricity": {
+      "value": 1.4696,
+      "date": "2025-S2",
+      "source": "Eurostat nrg_pc_204, household electricity",
+      "url": "https://ec.europa.eu/eurostat/databrowser/view/nrg_pc_204/default/table",
+      "nacPerKwh": 1.4696,
+      "note": "National currency per kWh. Band DC, 2,500–4,999 kWh, all taxes and levies included. Dataset updated 2026-09-24."
+    },
+    "grid": {
+      "gPerKwh": 259.74,
+      "year": 2025,
+      "unit": "gCO2/kWh",
+      "source": "Ember yearly electricity data, power-sector CO2 intensity",
+      "url": "https://ember-energy.org/data/yearly-electricity-data/",
+      "license": "CC BY 4.0",
+      "licenseUrl": "https://ember-energy.org/creative-commons/",
+      "note": "Generation intensity. No grid-loss factor is applied."
+    }
+  },
+  {
+    "code": "SK",
+    "name": {
+      "es": "Eslovaquia",
+      "en": "Slovakia"
+    },
+    "currency": "EUR",
+    "gasolinePerLiter": 1.853,
+    "dieselPerLiter": 1.95,
+    "electricityPerKwh": 0.1853,
+    "gasoline": {
+      "value": 1.853,
+      "date": "2026-09-21",
+      "source": "European Commission Weekly Oil Bulletin, Euro-super 95 with taxes",
+      "url": "https://energy.ec.europa.eu/data-and-analysis/weekly-oil-bulletin_en",
+      "eurPerLiter": 1.853,
+      "note": "Consumer price with taxes. Price as published in euros per litre (file is euros per 1,000 litres)."
+    },
+    "diesel": {
+      "value": 1.95,
+      "date": "2026-09-21",
+      "source": "European Commission Weekly Oil Bulletin, automotive diesel with taxes",
+      "url": "https://energy.ec.europa.eu/data-and-analysis/weekly-oil-bulletin_en",
+      "eurPerLiter": 1.95,
+      "note": "Consumer price with taxes. Price as published in euros per litre (file is euros per 1,000 litres)."
+    },
+    "electricity": {
+      "value": 0.1853,
+      "date": "2025-S2",
+      "source": "Eurostat nrg_pc_204, household electricity",
+      "url": "https://ec.europa.eu/eurostat/databrowser/view/nrg_pc_204/default/table",
+      "nacPerKwh": 0.1853,
+      "note": "National currency per kWh. Band DC, 2,500–4,999 kWh, all taxes and levies included. Dataset updated 2026-09-24."
+    },
+    "grid": {
+      "gPerKwh": 94.88,
+      "year": 2025,
+      "unit": "gCO2/kWh",
+      "source": "Ember yearly electricity data, power-sector CO2 intensity",
+      "url": "https://ember-energy.org/data/yearly-electricity-data/",
+      "license": "CC BY 4.0",
+      "licenseUrl": "https://ember-energy.org/creative-commons/",
+      "note": "Generation intensity. No grid-loss factor is applied."
+    }
+  },
+  {
+    "code": "SI",
+    "name": {
+      "es": "Eslovenia",
+      "en": "Slovenia"
+    },
+    "currency": "EUR",
+    "gasolinePerLiter": 1.70637,
+    "dieselPerLiter": 1.9752665899551152,
+    "electricityPerKwh": 0.2121,
+    "gasoline": {
+      "value": 1.70637,
+      "date": "2026-09-21",
+      "source": "European Commission Weekly Oil Bulletin, Euro-super 95 with taxes",
+      "url": "https://energy.ec.europa.eu/data-and-analysis/weekly-oil-bulletin_en",
+      "eurPerLiter": 1.70637,
+      "note": "Consumer price with taxes. Price as published in euros per litre (file is euros per 1,000 litres)."
+    },
+    "diesel": {
+      "value": 1.9752665899551152,
+      "date": "2026-09-21",
+      "source": "European Commission Weekly Oil Bulletin, automotive diesel with taxes",
+      "url": "https://energy.ec.europa.eu/data-and-analysis/weekly-oil-bulletin_en",
+      "eurPerLiter": 1.9752665899551152,
+      "note": "Consumer price with taxes. Price as published in euros per litre (file is euros per 1,000 litres)."
+    },
+    "electricity": {
+      "value": 0.2121,
+      "date": "2025-S2",
+      "source": "Eurostat nrg_pc_204, household electricity",
+      "url": "https://ec.europa.eu/eurostat/databrowser/view/nrg_pc_204/default/table",
+      "nacPerKwh": 0.2121,
+      "note": "National currency per kWh. Band DC, 2,500–4,999 kWh, all taxes and levies included. Dataset updated 2026-09-24."
+    },
+    "grid": {
+      "gPerKwh": 183.47,
+      "year": 2025,
+      "unit": "gCO2/kWh",
+      "source": "Ember yearly electricity data, power-sector CO2 intensity",
+      "url": "https://ember-energy.org/data/yearly-electricity-data/",
+      "license": "CC BY 4.0",
+      "licenseUrl": "https://ember-energy.org/creative-commons/",
+      "note": "Generation intensity. No grid-loss factor is applied."
+    }
+  },
+  {
+    "code": "ES",
+    "name": {
+      "es": "España",
+      "en": "Spain"
+    },
+    "currency": "EUR",
+    "gasolinePerLiter": 1.9279810269999997,
+    "dieselPerLiter": 1.918064942,
+    "electricityPerKwh": 0.2669,
+    "gasoline": {
+      "value": 1.9279810269999997,
+      "date": "2026-09-21",
+      "source": "European Commission Weekly Oil Bulletin, Euro-super 95 with taxes",
+      "url": "https://energy.ec.europa.eu/data-and-analysis/weekly-oil-bulletin_en",
+      "eurPerLiter": 1.9279810269999997,
+      "note": "Consumer price with taxes. Price as published in euros per litre (file is euros per 1,000 litres)."
+    },
+    "diesel": {
+      "value": 1.918064942,
+      "date": "2026-09-21",
+      "source": "European Commission Weekly Oil Bulletin, automotive diesel with taxes",
+      "url": "https://energy.ec.europa.eu/data-and-analysis/weekly-oil-bulletin_en",
+      "eurPerLiter": 1.918064942,
+      "note": "Consumer price with taxes. Price as published in euros per litre (file is euros per 1,000 litres)."
+    },
+    "electricity": {
+      "value": 0.2669,
+      "date": "2025-S2",
+      "source": "Eurostat nrg_pc_204, household electricity",
+      "url": "https://ec.europa.eu/eurostat/databrowser/view/nrg_pc_204/default/table",
+      "nacPerKwh": 0.2669,
+      "note": "National currency per kWh. Band DC, 2,500–4,999 kWh, all taxes and levies included. Dataset updated 2026-09-24."
+    },
+    "grid": {
+      "gPerKwh": 153.56,
+      "year": 2025,
+      "unit": "gCO2/kWh",
+      "source": "Ember yearly electricity data, power-sector CO2 intensity",
+      "url": "https://ember-energy.org/data/yearly-electricity-data/",
+      "license": "CC BY 4.0",
+      "licenseUrl": "https://ember-energy.org/creative-commons/",
+      "note": "Generation intensity. No grid-loss factor is applied."
+    }
+  },
+  {
+    "code": "SE",
+    "name": {
+      "es": "Suecia",
+      "en": "Sweden"
+    },
+    "currency": "SEK",
+    "gasolinePerLiter": 17.805999999999997,
+    "dieselPerLiter": 23.566999999999997,
+    "electricityPerKwh": 2.992,
+    "gasoline": {
+      "value": 17.805999999999997,
+      "date": "2026-09-21",
+      "source": "European Commission Weekly Oil Bulletin, Euro-super 95 with taxes",
+      "url": "https://energy.ec.europa.eu/data-and-analysis/weekly-oil-bulletin_en",
+      "eurPerLiter": 1.5792461197339245,
+      "note": "Consumer price with taxes. Oil Bulletin publishes this price in euros (1.57925 EUR/L petrol, 2.09020 EUR/L diesel). Shown in SEK with the ECB rate via Frankfurter on 2026-09-21: 1 EUR = 11.275 SEK. The euro price is not replaced."
+    },
+    "diesel": {
+      "value": 23.566999999999997,
+      "date": "2026-09-21",
+      "source": "European Commission Weekly Oil Bulletin, automotive diesel with taxes",
+      "url": "https://energy.ec.europa.eu/data-and-analysis/weekly-oil-bulletin_en",
+      "eurPerLiter": 2.0901995565410196,
+      "note": "Consumer price with taxes. Oil Bulletin publishes this price in euros (1.57925 EUR/L petrol, 2.09020 EUR/L diesel). Shown in SEK with the ECB rate via Frankfurter on 2026-09-21: 1 EUR = 11.275 SEK. The euro price is not replaced."
+    },
+    "electricity": {
+      "value": 2.992,
+      "date": "2025-S2",
+      "source": "Eurostat nrg_pc_204, household electricity",
+      "url": "https://ec.europa.eu/eurostat/databrowser/view/nrg_pc_204/default/table",
+      "nacPerKwh": 2.992,
+      "note": "National currency per kWh. Band DC, 2,500–4,999 kWh, all taxes and levies included. Dataset updated 2026-09-24."
+    },
+    "grid": {
+      "gPerKwh": 35.35,
+      "year": 2025,
+      "unit": "gCO2/kWh",
+      "source": "Ember yearly electricity data, power-sector CO2 intensity",
+      "url": "https://ember-energy.org/data/yearly-electricity-data/",
+      "license": "CC BY 4.0",
+      "licenseUrl": "https://ember-energy.org/creative-commons/",
+      "note": "Generation intensity. No grid-loss factor is applied."
+    }
+  },
+  {
+    "code": "US",
+    "name": {
+      "es": "Estados Unidos",
+      "en": "United States"
+    },
+    "currency": "USD",
+    "gasolinePerLiter": 1.1829624504597887,
+    "dieselPerLiter": 1.724779329846351,
+    "electricityPerKwh": 0.18309999999999998,
+    "gasoline": {
+      "value": 1.1829624504597887,
+      "date": "2026-09-21",
+      "source": "EIA Weekly U.S. Regular All Formulations Retail Gasoline Prices",
+      "url": "https://www.eia.gov/petroleum/gasdiesel/",
+      "note": "EIA national weekly retail price, dollars per gallon converted with 1 US gallon = 3.785411784 L. Taxes included, as EIA states on the Gasoline and Diesel Fuel Update. Published series value 4.478 USD/gallon on 2026-09-21."
+    },
+    "diesel": {
+      "value": 1.724779329846351,
+      "date": "2026-09-21",
+      "source": "EIA Weekly U.S. No. 2 Diesel Retail Prices",
+      "url": "https://www.eia.gov/petroleum/gasdiesel/",
+      "note": "EIA national weekly retail price, dollars per gallon converted with 1 US gallon = 3.785411784 L. Taxes included, as EIA states on the Gasoline and Diesel Fuel Update. Published series value 6.529 USD/gallon on 2026-09-21."
+    },
+    "electricity": {
+      "value": 0.18309999999999998,
+      "date": "2026-07",
+      "source": "EIA Electric Power Monthly, table 5.3, residential",
+      "url": "https://www.eia.gov/electricity/monthly/epm_table_grapher.php?t=epmt_5_3",
+      "note": "National currency per kWh. Band DC, 2,500–4,999 kWh, all taxes and levies included. Cents per kWh converted to dollars per kWh."
+    },
+    "grid": {
+      "gPerKwh": 384.4,
+      "year": 2025,
+      "unit": "gCO2/kWh",
+      "source": "Ember yearly electricity data, power-sector CO2 intensity",
+      "url": "https://ember-energy.org/data/yearly-electricity-data/",
+      "license": "CC BY 4.0",
+      "licenseUrl": "https://ember-energy.org/creative-commons/",
+      "note": "Generation intensity. No grid-loss factor is applied."
+    }
+  },
+  {
+    "code": "GB",
+    "name": {
+      "es": "Reino Unido",
+      "en": "United Kingdom"
+    },
+    "currency": "GBP",
+    "gasolinePerLiter": 1.7201,
+    "dieselPerLiter": 1.9553,
+    "electricityPerKwh": 0.3145126054780478,
+    "gasoline": {
+      "value": 1.7201,
+      "date": "2026-09-21",
+      "source": "DESNZ weekly road fuel prices, ULSP pump price",
+      "url": "https://www.gov.uk/government/statistics/weekly-road-fuel-prices",
+      "note": "Pence per litre converted to pounds per litre. Pump price, duty and VAT included."
+    },
+    "diesel": {
+      "value": 1.9553,
+      "date": "2026-09-21",
+      "source": "DESNZ weekly road fuel prices, ULSD pump price",
+      "url": "https://www.gov.uk/government/statistics/weekly-road-fuel-prices",
+      "note": "Pence per litre converted to pounds per litre. Pump price, duty and VAT included."
+    },
+    "electricity": {
+      "value": 0.3145126054780478,
+      "date": "2025",
+      "source": "DESNZ Quarterly Energy Prices, table 2.2.5",
+      "url": "https://assets.publishing.service.gov.uk/media/6a6a1ac424593dd070ba47c6/table_225.xlsx",
+      "note": "Overall standard-electricity bill in cash terms for 3400 kWh in 2025: £1069.34, divided by those kWh. The 3,400 kWh figure is DESNZ's own assumption in that table, not a guess. VAT included. It is a household average, not a night rate and not public fast charging."
+    },
+    "grid": {
+      "gPerKwh": 217.41,
+      "year": 2025,
+      "unit": "gCO2/kWh",
+      "source": "Ember yearly electricity data, power-sector CO2 intensity",
+      "url": "https://ember-energy.org/data/yearly-electricity-data/",
+      "license": "CC BY 4.0",
+      "licenseUrl": "https://ember-energy.org/creative-commons/",
+      "note": "Generation intensity. No grid-loss factor is applied."
+    }
+  }
+]

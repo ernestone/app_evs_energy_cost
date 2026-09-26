@@ -1,0 +1,82 @@
+{
+  "generatedAt": "2026-09-26T10:56:40.743571+00:00",
+  "epaFileDate": "2026-09-18",
+  "vehicleCount": 32313,
+  "modelYearMin": 2000,
+  "modelYearMax": 2027,
+  "trimmed": true,
+  "trimmedNote": "vehicles.json keeps the fields the screen uses, from model year 2000. MSRP is not included. The raw EPA file is not committed.",
+  "fx": {
+    "date": "2026-09-25",
+    "base": "EUR",
+    "rates": {
+      "EUR": 1.0,
+      "AUD": 1.622,
+      "BRL": 5.9091,
+      "CAD": 1.6127,
+      "CHF": 0.9445,
+      "CNY": 7.6551,
+      "CZK": 24.345,
+      "DKK": 7.4755,
+      "GBP": 0.86045,
+      "HKD": 8.9445,
+      "HUF": 365.28,
+      "IDR": 20427.22,
+      "ILS": 3.4594,
+      "INR": 109.2605,
+      "ISK": 136.6,
+      "JPY": 179.7,
+      "KRW": 1545.16,
+      "MXN": 20.1816,
+      "MYR": 4.6456,
+      "NOK": 10.84,
+      "NZD": 2.0108,
+      "PHP": 71.244,
+      "PLN": 4.3718,
+      "RON": 5.2765,
+      "SEK": 11.29,
+      "SGD": 1.4563,
+      "THB": 38.023,
+      "TRY": 55.7975,
+      "USD": 1.1403,
+      "ZAR": 18.5798
+    },
+    "url": "https://www.frankfurter.app",
+    "provider": "Frankfurter (ECB reference rates)"
+  },
+  "fxOilBulletin": {
+    "date": "2026-09-21",
+    "rates": {
+      "CZK": 24.352,
+      "DKK": 7.4755,
+      "HUF": 362.4,
+      "PLN": 4.353,
+      "RON": 5.2647,
+      "SEK": 11.275,
+      "USD": 1.149,
+      "GBP": 0.8578
+    }
+  },
+  "fxBgn": {
+    "date": "2025-12-31",
+    "bgnPerEur": 1.9558
+  },
+  "upstream": {
+    "multiplier": 1.25,
+    "surchargeShare": 0.25,
+    "appliesTo": "gasoline",
+    "citation": "U.S. EPA / fueleconomy.gov: tailpipe CO2 of gasoline is multiplied by 1.25 for upstream production (extraction, refining, distribution). See 75 FR 25437, May 7, 2010.",
+    "url": "https://www.fueleconomy.gov/feg/label/calculations-information.shtml",
+    "notCountrySpecific": true,
+    "notOfficialComparison": true,
+    "diesel": "The same page does not publish a separate diesel multiplier, so the switch does not change diesel."
+  },
+  "phevIcct": {
+    "citation": "Isenstadt, Yang, Searle and German, ICCT, December 2022. Real-world electric drive share may be 26%–56% lower than the EPA label.",
+    "url": "https://theicct.org/publication/real-world-phev-us-dec22/",
+    "lowCut": 0.26,
+    "highCut": 0.56,
+    "note": "The two options are the published ends of that range, applied as the same cut to every car. They are not a measurement of the selected model."
+  },
+  "ukElectricity": "filled"
+}

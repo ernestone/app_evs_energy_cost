@@ -1,0 +1,366 @@
+import type { Fuel, PhevMode, Vehicle } from "./types"
+
+export const MI_TO_KM = 1.609344
+export const GAL_TO_L = 3.785411784
+/** 100 × US gallon in litres / mile in kilometres. L/100 km = this / MPG. */
+export const L_PER_100KM_NUMERATOR = (100 * GAL_TO_L) / MI_TO_KM
+export const KWH_PER_GAL = 33.7
+export const GAS_G_PER_GAL = 8887
+export const DIESEL_G_PER_GAL = 10180
+/** EPA multiplies gasoline tailpipe CO₂ by 1.25. The surcharge is the extra 0.25. */
+export const UPSTREAM_MULTIPLIER = 1.25
+export const DEFAULT_KM_YEAR = 15000
+export const DEFAULT_CITY_SHARE = 0.55
+export const ICCT_LOW_CUT = 0.26
+export const ICCT_HIGH_CUT = 0.56
+
+const KWH_PER_L = KWH_PER_GAL / GAL_TO_L
+
+export interface DriveInput {
+  kmYear: number
+  cityShare: number
+  phevMode: PhevMode
+  /** Null means half the official utility factor. */
+  customElectricShare: number | null
+  upstream: boolean
+}
+
+export interface Prices {
+  gasolinePerLiter: number | null
+  dieselPerLiter: number | null
+  electricityPerKwh: number | null
+  gridGPerKwh: number | null
+}
+
+export type Boundary =
+  | "tailpipe"
+  | "tailpipe-upstream"
+  | "grid"
+  | "tailpipe-grid"
+  | "tailpipe-upstream-grid"
+
+export interface SideFigures {
+  litersYear: number
+  kwhYear: number
+  costYear: number
+  costMonth: number
+  costPer100Km: number
+  kwhEqPer100Km: number
+  tailpipeTonnes: number
+  upstreamTonnes: number
+  gridTonnes: number
+  co2Tonnes: number | null
+  gPerKm: number | null
+  boundary: Boundary
+  co2Estimated: boolean
+  co2FromFactor: boolean
+  rangeKm: number | null
+  electricRangeKm: number | null
+  charge240: number | null
+  electricShare: number | null
+  officialUf: number | null
+  premium: boolean
+  ffv: boolean
+  upstreamApplies: boolean
+  upstreamSkippedDiesel: boolean
+}
+
+export interface ReadyComparison {
+  ok: true
+  ev: SideFigures
+  ice: SideFigures
+  projection: { year: number; ev: number; ice: number }[]
+}
+
+export interface BlockedComparison {
+  ok: false
+  missingPrices: Array<"gasoline" | "diesel" | "electricity">
+  missingConsumption: Array<"ev" | "ice">
+  invalidKm: boolean
+}
+
+export type Comparison = ReadyComparison | BlockedComparison
+
+function nearOfficialSplit(cityShare: number) {
+  return Math.abs(cityShare - DEFAULT_CITY_SHARE) < 0.0005
+}
+
+function clamp01(value: number) {
+  return Math.min(1, Math.max(0, value))
+}
+
+export function mpgForSplit(vehicle: Vehicle, cityShare: number): number | null {
+  if (nearOfficialSplit(cityShare) && vehicle.combMpg && vehicle.combMpg > 0) return vehicle.combMpg
+  if (cityShare >= 0.999) return positive(vehicle.cityMpg)
+  if (cityShare <= 0.001) return positive(vehicle.hwyMpg)
+  const city = vehicle.cityMpg
+  const hwy = vehicle.hwyMpg
+  if (!city || !hwy || city <= 0 || hwy <= 0) return null
+  return 1 / (cityShare / city + (1 - cityShare) / hwy)
+}
+
+export function kwhPer100Miles(vehicle: Vehicle, cityShare: number): number | null {
+  if (nearOfficialSplit(cityShare) && vehicle.combE && vehicle.combE > 0) return vehicle.combE
+  if (cityShare >= 0.999) return positive(vehicle.cityE)
+  if (cityShare <= 0.001) return positive(vehicle.hwyE)
+  if (vehicle.cityE == null || vehicle.hwyE == null || vehicle.cityE <= 0 || vehicle.hwyE <= 0) return null
+  return cityShare * vehicle.cityE + (1 - cityShare) * vehicle.hwyE
+}
+
+export function utilityFactor(vehicle: Vehicle, cityShare: number): number | null {
+  if (nearOfficialSplit(cityShare) && vehicle.combUf != null) return vehicle.combUf
+  if (vehicle.cityUf == null || vehicle.hwyUf == null) return vehicle.combUf
+  if (cityShare >= 0.999) return vehicle.cityUf
+  if (cityShare <= 0.001) return vehicle.hwyUf
+  return cityShare * vehicle.cityUf + (1 - cityShare) * vehicle.hwyUf
+}
+
+export function resolveElectricShare(vehicle: Vehicle, input: DriveInput) {
+  const official = utilityFactor(vehicle, input.cityShare)
+  if (official == null) return null
+  if (input.phevMode === "epa") return { share: clamp01(official), official }
+  if (input.phevMode === "icct26") return { share: clamp01(official * (1 - ICCT_LOW_CUT)), official }
+  if (input.phevMode === "icct56") return { share: clamp01(official * (1 - ICCT_HIGH_CUT)), official }
+  const custom = input.customElectricShare == null ? official * 0.5 : input.customElectricShare
+  return { share: clamp01(custom), official }
+}
+
+function positive(value: number | null): number | null {
+  return value != null && value > 0 ? value : null
+}
+
+function blank(): SideFigures {
+  return {
+    litersYear: 0,
+    kwhYear: 0,
+    costYear: 0,
+    costMonth: 0,
+    costPer100Km: 0,
+    kwhEqPer100Km: 0,
+    tailpipeTonnes: 0,
+    upstreamTonnes: 0,
+    gridTonnes: 0,
+    co2Tonnes: 0,
+    gPerKm: 0,
+    boundary: "tailpipe",
+    co2Estimated: false,
+    co2FromFactor: false,
+    rangeKm: null,
+    electricRangeKm: null,
+    charge240: null,
+    electricShare: null,
+    officialUf: null,
+    premium: false,
+    ffv: false,
+    upstreamApplies: false,
+    upstreamSkippedDiesel: false,
+  }
+}
+
+function money(side: SideFigures, kmYear: number) {
+  side.costMonth = side.costYear / 12
+  side.costPer100Km = side.costYear / (kmYear / 100)
+  const tonnes = side.tailpipeTonnes + side.upstreamTonnes + side.gridTonnes
+  const gridKnown = side.co2Tonnes !== null || side.gridTonnes === 0
+  if (side.co2Tonnes === null) return
+  side.co2Tonnes = tonnes
+  side.gPerKm = (tonnes * 1_000_000) / kmYear
+  void gridKnown
+}
+
+export function compare(
+  ev: Vehicle | null,
+  ice: Vehicle | null,
+  prices: Prices,
+  input: DriveInput,
+): Comparison {
+  if (!ev || !ice || ev.side !== "ev" || ice.side !== "ice") {
+    return { ok: false, missingPrices: [], missingConsumption: [], invalidKm: false }
+  }
+  if (!(input.kmYear > 0) || input.cityShare < 0 || input.cityShare > 1) {
+    return { ok: false, missingPrices: [], missingConsumption: [], invalidKm: true }
+  }
+
+  const evUse = measureEv(ev, input)
+  const iceUse = measureIce(ice, input)
+  const missingConsumption: Array<"ev" | "ice"> = []
+  if (!evUse) missingConsumption.push("ev")
+  if (!iceUse) missingConsumption.push("ice")
+
+  const missingPrices = new Set<"gasoline" | "diesel" | "electricity">()
+  if (evUse && prices.electricityPerKwh == null) missingPrices.add("electricity")
+  if (iceUse) {
+    if (iceUse.kwhYear > 0 && prices.electricityPerKwh == null) missingPrices.add("electricity")
+    if (iceUse.litersYear > 0) {
+      missingPrices.add(ice.fuel === "diesel" ? "diesel" : "gasoline")
+      const fuel = ice.fuel === "diesel" ? prices.dieselPerLiter : prices.gasolinePerLiter
+      if (fuel != null) missingPrices.delete(ice.fuel === "diesel" ? "diesel" : "gasoline")
+    }
+  }
+
+  if (missingConsumption.length || missingPrices.size) {
+    return {
+      ok: false,
+      missingPrices: [...missingPrices],
+      missingConsumption,
+      invalidKm: false,
+    }
+  }
+
+  const readyEv = priceEv(ev, evUse!, prices, input)
+  const readyIce = priceIce(ice, iceUse!, prices, input)
+  return {
+    ok: true,
+    ev: readyEv,
+    ice: readyIce,
+    projection: [1, 2, 3, 4, 5].map((year) => ({
+      year,
+      ev: readyEv.costYear * year,
+      ice: readyIce.costYear * year,
+    })),
+  }
+}
+
+interface Measured {
+  litersYear: number
+  kwhYear: number
+  gallons: number
+  miles: number
+  electricShare: number | null
+  officialUf: number | null
+  usePublishedCo2: boolean
+}
+
+function measureEv(vehicle: Vehicle, input: DriveInput): Measured | null {
+  const per100Mi = kwhPer100Miles(vehicle, input.cityShare)
+  if (per100Mi == null) return null
+  const miles = input.kmYear / MI_TO_KM
+  return {
+    litersYear: 0,
+    kwhYear: (miles / 100) * per100Mi,
+    gallons: 0,
+    miles,
+    electricShare: null,
+    officialUf: null,
+    usePublishedCo2: false,
+  }
+}
+
+function measureIce(vehicle: Vehicle, input: DriveInput): Measured | null {
+  const miles = input.kmYear / MI_TO_KM
+  if (vehicle.powertrain !== "phev") {
+    const mpg = mpgForSplit(vehicle, input.cityShare)
+    if (mpg == null) return null
+    const gallons = miles / mpg
+    return {
+      litersYear: gallons * GAL_TO_L,
+      kwhYear: 0,
+      gallons,
+      miles,
+      electricShare: null,
+      officialUf: null,
+      usePublishedCo2: nearOfficialSplit(input.cityShare) && vehicle.co2Gpm != null,
+    }
+  }
+
+  const resolved = resolveElectricShare(vehicle, input)
+  if (!resolved) return null
+  const share = resolved.share
+  const mpg = mpgForSplit(vehicle, input.cityShare)
+  if (share < 0.999 && mpg == null) return null
+  const per100Mi = share > 0.001 ? kwhPer100Miles(vehicle, input.cityShare) : 0
+  if (share > 0.001 && per100Mi == null) return null
+  const gallons =
+    (share < 0.999 ? (miles * (1 - share)) / (mpg as number) : 0) +
+    ((miles * share) / 100) * (vehicle.cdGalPer100Mi || 0)
+  return {
+    litersYear: gallons * GAL_TO_L,
+    kwhYear: ((miles * share) / 100) * (per100Mi || 0),
+    gallons,
+    miles,
+    electricShare: share,
+    officialUf: resolved.official,
+    usePublishedCo2:
+      input.phevMode === "epa" &&
+      nearOfficialSplit(input.cityShare) &&
+      vehicle.co2Gpm != null,
+  }
+}
+
+function priceEv(vehicle: Vehicle, measured: Measured, prices: Prices, input: DriveInput): SideFigures {
+  const side = blank()
+  const price = prices.electricityPerKwh ?? 0
+  side.kwhYear = measured.kwhYear
+  side.kwhEqPer100Km = measured.kwhYear / (input.kmYear / 100)
+  side.costYear = measured.kwhYear * price
+  side.rangeKm = vehicle.rangeMi ? vehicle.rangeMi * MI_TO_KM : null
+  side.charge240 = vehicle.charge240
+  if (prices.gridGPerKwh == null) {
+    side.co2Tonnes = null
+    side.gPerKm = null
+    side.boundary = "grid"
+  } else {
+    side.gridTonnes = (measured.kwhYear * prices.gridGPerKwh) / 1_000_000
+    side.boundary = "grid"
+    side.co2Tonnes = 0
+    money(side, input.kmYear)
+  }
+  side.costMonth = side.costYear / 12
+  side.costPer100Km = side.costYear / (input.kmYear / 100)
+  return side
+}
+
+function priceIce(vehicle: Vehicle, measured: Measured, prices: Prices, input: DriveInput): SideFigures {
+  const side = blank()
+  const fuelPrice = vehicle.fuel === "diesel" ? prices.dieselPerLiter ?? 0 : prices.gasolinePerLiter ?? 0
+  const elecPrice = prices.electricityPerKwh ?? 0
+  side.litersYear = measured.litersYear
+  side.kwhYear = measured.kwhYear
+  side.electricShare = measured.electricShare
+  side.officialUf = measured.officialUf
+  side.premium = vehicle.fuel === "premium"
+  side.ffv = vehicle.powertrain === "ffv"
+  side.rangeKm = vehicle.rangeMi ? vehicle.rangeMi * MI_TO_KM : null
+  side.electricRangeKm = vehicle.rangeAMi ? vehicle.rangeAMi * MI_TO_KM : null
+  side.charge240 = vehicle.powertrain === "phev" ? vehicle.charge240 : null
+  side.costYear = measured.litersYear * fuelPrice + measured.kwhYear * elecPrice
+  const litersPer100 = measured.litersYear / (input.kmYear / 100)
+  const kwhPer100 = measured.kwhYear / (input.kmYear / 100)
+  side.kwhEqPer100Km = kwhPer100 + litersPer100 * KWH_PER_L
+
+  let grams = 0
+  if (measured.usePublishedCo2 && vehicle.co2Gpm != null) {
+    grams = vehicle.co2Gpm * measured.miles
+  } else if (measured.gallons > 0) {
+    grams = measured.gallons * (vehicle.fuel === "diesel" ? DIESEL_G_PER_GAL : GAS_G_PER_GAL)
+    side.co2FromFactor = true
+  }
+  side.tailpipeTonnes = grams / 1_000_000
+  side.co2Estimated = vehicle.year < 2013
+  const gasolineLike = vehicle.fuel === "gasoline" || vehicle.fuel === "premium"
+  if (input.upstream && gasolineLike && grams > 0) {
+    side.upstreamTonnes = (grams * (UPSTREAM_MULTIPLIER - 1)) / 1_000_000
+    side.upstreamApplies = true
+  }
+  if (input.upstream && vehicle.fuel === "diesel") side.upstreamSkippedDiesel = true
+
+  const wantsGrid = vehicle.powertrain === "phev" && measured.kwhYear > 0
+  if (wantsGrid && prices.gridGPerKwh == null) {
+    side.co2Tonnes = null
+    side.gPerKm = null
+  } else {
+    if (wantsGrid && prices.gridGPerKwh != null) {
+      side.gridTonnes = (measured.kwhYear * prices.gridGPerKwh) / 1_000_000
+    }
+    side.co2Tonnes = 0
+    money(side, input.kmYear)
+  }
+  side.costMonth = side.costYear / 12
+  side.costPer100Km = side.costYear / (input.kmYear / 100)
+  const hasTailpipe = grams > 0
+  const hasGrid = side.gridTonnes > 0
+  if (hasGrid && hasTailpipe) side.boundary = side.upstreamApplies ? "tailpipe-upstream-grid" : "tailpipe-grid"
+  else if (hasGrid) side.boundary = "grid"
+  else side.boundary = side.upstreamApplies ? "tailpipe-upstream" : "tailpipe"
+  return side
+}
