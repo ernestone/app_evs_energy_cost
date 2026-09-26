@@ -15,7 +15,7 @@ const fraunces = Fraunces({
 export const metadata: Metadata = {
   title: "Paralelo",
   description:
-    "Compara la energía y el CO₂ de usar un eléctrico y un coche de combustión, con precios del país y consumo EPA.",
+    "Compara la energía y el CO₂ de usar un eléctrico y un coche de combustión, con precios del país y consumo EPA o WLTP.",
 }
 
 export default function RootLayout({ children }: LayoutProps<"/">) {

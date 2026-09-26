@@ -13,7 +13,7 @@ import { VehiclePicker } from "@/components/vehicle-picker"
 import { compare, DEFAULT_CITY_SHARE, DEFAULT_KM_YEAR, resolveElectricShare } from "@/lib/calc"
 import { crossRate, formatDate, formatMoney, formatNumber, parsePrice, priceInput } from "@/lib/format"
 import { copy, type Copy } from "@/lib/i18n"
-import type { Country, FxTable, Lang, SnapshotMeta, Vehicle } from "@/lib/types"
+import type { Country, CountryCatalogMeta, FxTable, Lang, SnapshotMeta, Vehicle } from "@/lib/types"
 
 const DISPLAY = ["EUR", "USD", "GBP", "CZK", "DKK", "HUF", "PLN", "RON", "SEK"]
 const fieldClass =
@@ -23,10 +23,12 @@ export function Comparator({
   countries,
   fx,
   meta,
+  catalog,
 }: {
   countries: Country[]
   fx: FxTable
   meta: SnapshotMeta
+  catalog: CountryCatalogMeta
 }) {
   const [lang, setLang] = useState<Lang>("es")
   const text = copy(lang)
@@ -54,6 +56,8 @@ export function Comparator({
     setDiesel(priceInput(country.dieselPerLiter))
     setElectricity(priceInput(country.electricityPerKwh))
     setDisplay(country.currency)
+    setEv(null)
+    setIce(null)
   }, [country])
 
   const km = Number(kmYear)
@@ -188,19 +192,19 @@ export function Comparator({
 
           <Step n={2} title={text.steps.ev}>
             <p className="text-sm text-muted-foreground">{text.catalogNote}</p>
-            <VehiclePicker side="ev" copy={text} selected={ev} onSelect={setEv} />
+            <VehiclePicker key={`ev-${countryCode}`} side="ev" country={countryCode} copy={text} selected={ev} onSelect={setEv} />
           </Step>
 
           <Step n={3} title={text.steps.ice}>
             <p className="text-sm text-muted-foreground">{text.iceNote}</p>
-            <VehiclePicker side="ice" copy={text} selected={ice} onSelect={(vehicle) => {
+            <VehiclePicker key={`ice-${countryCode}`} side="ice" country={countryCode} copy={text} selected={ice} onSelect={(vehicle) => {
               setIce(vehicle)
               setPhevMode("epa")
               setCustomShare(null)
             }} />
             {ice?.fuel === "premium" ? <Notice>{text.premiumWarn}</Notice> : null}
             {ice?.powertrain === "ffv" ? <Notice>{text.ffvNote}</Notice> : null}
-            {ice?.powertrain === "phev" && shareInfo ? (
+            {ice?.powertrain === "phev" && ice.cycle !== "WLTP" && shareInfo ? (
               <div className="grid gap-3 rounded-lg bg-secondary/60 p-3">
                 <p className="text-sm font-medium">{text.phevTitle}</p>
                 <select className={fieldClass} value={phevMode} onChange={(event) => setPhevMode(event.target.value as typeof phevMode)}>
@@ -267,10 +271,14 @@ export function Comparator({
                 min={0}
                 max={100}
                 value={[cityPct]}
+                disabled={ev?.cycle === "WLTP" && ice?.cycle === "WLTP"}
                 onValueChange={(value) => setCityPct(Array.isArray(value) ? value[0] : value)}
               />
               <p className="text-sm leading-6 text-muted-foreground">{text.splitNote}</p>
-              {cityPct !== 55 ? <p className="text-sm">{text.splitChanged}</p> : null}
+              {ev?.cycle === "WLTP" || ice?.cycle === "WLTP" ? (
+                <p className="text-sm leading-6 text-muted-foreground">{text.splitSkipped}</p>
+              ) : null}
+              {cityPct !== 55 && (ev?.cycle !== "WLTP" || ice?.cycle !== "WLTP") ? <p className="text-sm">{text.splitChanged}</p> : null}
             </div>
             <div className="flex items-start gap-3">
               <Switch checked={upstream} onCheckedChange={setUpstream} id="upstream" />
@@ -296,6 +304,7 @@ export function Comparator({
             ev={ev}
             ice={ice}
             country={country}
+            catalog={catalog}
           />
         </aside>
       </main>
@@ -309,6 +318,13 @@ export function Comparator({
                 {text.epa}
               </a>
               . {meta.epaFileDate}. {text.vehiclesKept} {meta.modelYearMin}–{meta.modelYearMax}, {meta.vehicleCount}.
+            </li>
+            <li>
+              <a className="underline" href={catalog.eu.url}>{text.eea}</a> {catalog.eu.retrieved}. {catalog.eu.license}.{" "}
+              <a className="underline" href={catalog.eu.licenseUrl}>{catalog.eu.license}</a>. {catalog.eu.index}. {catalog.eu.years}.
+            </li>
+            <li>
+              <a className="underline" href={catalog.gb.url}>{text.vcaFailed}</a> {catalog.gb.detail}
             </li>
             <li>
               <a className="underline" href="https://energy.ec.europa.eu/data-and-analysis/weekly-oil-bulletin_en">
@@ -384,6 +400,7 @@ function Results({
   ev,
   ice,
   country,
+  catalog,
 }: {
   text: Copy
   lang: Lang
@@ -397,6 +414,7 @@ function Results({
   ev: Vehicle | null
   ice: Vehicle | null
   country: Country | null
+  catalog: CountryCatalogMeta
 }) {
   if (!country || !ev || !ice) {
     return (
@@ -441,13 +459,15 @@ function Results({
         {display === sourceCurrency ? "" : ` · 1 ${sourceCurrency} = ${rate == null ? "—" : formatNumber(rate, lang, 4)} ${display}`}
       </p>
       <div className="grid gap-3 sm:grid-cols-2">
-        <Quantity text={text} lang={lang} title={text.evSeries} name={`${ev.year} ${ev.make} ${ev.version}`} liters={null} kwh={result.ev.kwhYear} rangeKm={result.ev.rangeKm} electricRangeKm={null} charge={result.ev.charge240} estimated={false} />
-        <Quantity text={text} lang={lang} title={text.iceSeries} name={`${ice.year} ${ice.make} ${ice.version}`} liters={result.ice.litersYear} kwh={result.ice.kwhYear || null} rangeKm={result.ice.rangeKm} electricRangeKm={result.ice.electricRangeKm} charge={result.ice.charge240} estimated={result.ice.co2Estimated} />
+        <Quantity text={text} lang={lang} title={text.evSeries} vehicle={ev} liters={null} kwh={result.ev.kwhYear} rangeKm={result.ev.rangeKm} electricRangeKm={null} charge={result.ev.charge240} estimated={false} catalog={catalog} />
+        <Quantity text={text} lang={lang} title={text.iceSeries} vehicle={ice} liters={result.ice.litersYear} kwh={result.ice.kwhYear || null} rangeKm={result.ice.rangeKm} electricRangeKm={result.ice.electricRangeKm} charge={result.ice.charge240} estimated={result.ice.co2Estimated} catalog={catalog} />
       </div>
       <Charts
         copy={text}
         lang={lang}
         currency={display}
+        evSeries={`${text.evSeries} (${cycleOf(ev)})`}
+        iceSeries={`${text.iceSeries} (${cycleOf(ice)})`}
         year={{ ev: shown(result.ev.costYear), ice: shown(result.ice.costYear) }}
         month={{ ev: shown(result.ev.costMonth), ice: shown(result.ice.costMonth) }}
         per100={{ ev: shown(result.ev.costPer100Km), ice: shown(result.ice.costPer100Km) }}
@@ -475,38 +495,67 @@ function upstreamOn(result: { ice: { upstreamSkippedDiesel: boolean } }) {
   return result.ice.upstreamSkippedDiesel
 }
 
+function cycleOf(vehicle: Vehicle) {
+  return vehicle.cycle === "WLTP" ? "WLTP" : "EPA"
+}
+
 function Quantity({
   text,
   lang,
   title,
-  name,
+  vehicle,
   liters,
   kwh,
   rangeKm,
   electricRangeKm,
   charge,
   estimated,
+  catalog,
 }: {
   text: Copy
   lang: Lang
   title: string
-  name: string
+  vehicle: Vehicle
   liters: number | null
   kwh: number | null
   rangeKm: number | null
   electricRangeKm: number | null
   charge: number | null
   estimated: boolean
+  catalog: CountryCatalogMeta
 }) {
+  const cycle = cycleOf(vehicle)
+  const sourceUrl = vehicle.wltp?.sourceUrl ?? catalog.us.url
+  const sourceName = vehicle.wltp?.sourceName ?? catalog.us.source
+  const rate =
+    vehicle.cycle === "WLTP"
+      ? [
+          vehicle.wltp?.lPer100km != null ? `${formatNumber(vehicle.wltp.lPer100km, lang, 1)} L/100 km` : null,
+          vehicle.wltp?.kwhPer100km != null ? `${formatNumber(vehicle.wltp.kwhPer100km, lang, 1)} kWh/100 km` : null,
+          vehicle.wltp?.co2GPerKm != null ? `${formatNumber(vehicle.wltp.co2GPerKm, lang, 0)} g/km` : null,
+        ]
+          .filter(Boolean)
+          .join(" · ")
+      : null
   return (
     <div className="rounded-xl bg-card p-3 ring-1 ring-foreground/10">
       <p className="text-xs uppercase tracking-wide text-muted-foreground">{title}</p>
-      <p className="text-sm font-medium leading-5">{name}</p>
+      <p className="text-sm font-medium leading-5">
+        {vehicle.year} {vehicle.make} {vehicle.version}
+      </p>
+      <p className="mt-1 text-sm">
+        <Badge variant="secondary">{cycle}</Badge>{" "}
+        <a className="underline" href={sourceUrl}>
+          {sourceName}
+        </a>
+        {vehicle.wltp ? ` · ${vehicle.wltp.license}` : null}
+      </p>
+      {rate ? <p className="mt-1 text-sm leading-5">{rate} · {cycle}</p> : null}
       {liters != null ? (
-        <p className="mt-2 font-heading text-2xl">{formatNumber(liters, lang, 0)} <span className="font-sans text-sm">{text.litersYear}</span></p>
+        <p className="mt-2 font-heading text-2xl">{formatNumber(liters, lang, 0)} <span className="font-sans text-sm">{text.litersYear} · {cycle}</span></p>
       ) : null}
       {kwh != null ? (
-        <p className="mt-2 font-heading text-2xl">{formatNumber(kwh, lang, 0)} <span className="font-sans text-sm">{text.kwhYear}</span></p>
+        <p className="mt-2 font-heading text-2xl">{formatNumber(kwh, lang, 0)} <span className="font-sans text-sm">{text.kwhYear} · {cycle}</span></p>
       ) : null}
       <p className="mt-1 text-sm text-muted-foreground">
         {text.range}: {rangeKm == null ? text.noRange : `${formatNumber(rangeKm, lang, 0)} km`}

@@ -33,6 +33,8 @@ export function Charts({
   projection,
   evBoundary,
   iceBoundary,
+  evSeries,
+  iceSeries,
 }: {
   copy: Copy
   lang: Lang
@@ -46,6 +48,8 @@ export function Charts({
   projection: { year: number; ev: number; ice: number }[]
   evBoundary: string
   iceBoundary: string
+  evSeries: string
+  iceSeries: string
 }) {
   const money = (value: number) => formatNumber(value, lang, value >= 100 ? 0 : 2)
   return (
@@ -54,14 +58,16 @@ export function Charts({
         <ChartCard title={`${copy.steps.results}: ${copy.perYear}`} unit={currency}>
           <Bars
             data={[{ name: copy.perYear, ev: year.ev, ice: year.ice }]}
-            copy={copy}
+            evSeries={evSeries}
+            iceSeries={iceSeries}
             format={money}
           />
         </ChartCard>
         <ChartCard title={copy.perMonth} unit={currency}>
           <Bars
             data={[{ name: copy.perMonth, ev: month.ev, ice: month.ice }]}
-            copy={copy}
+            evSeries={evSeries}
+            iceSeries={iceSeries}
             format={money}
           />
         </ChartCard>
@@ -69,14 +75,16 @@ export function Charts({
       <ChartCard title={`${copy.per100}`} unit={currency}>
         <Bars
           data={[{ name: "100 km", ev: per100.ev, ice: per100.ice }]}
-          copy={copy}
+          evSeries={evSeries}
+          iceSeries={iceSeries}
           format={(value) => formatNumber(value, lang, 2)}
         />
       </ChartCard>
       <ChartCard title={copy.energyTitle} unit={copy.energyUnit}>
         <Bars
           data={[{ name: "100 km", ev: energy.ev, ice: energy.ice }]}
-          copy={copy}
+          evSeries={evSeries}
+          iceSeries={iceSeries}
           format={(value) => formatNumber(value, lang, 1)}
         />
       </ChartCard>
@@ -90,17 +98,18 @@ export function Charts({
                 ice: co2.ice ?? 0,
               },
             ]}
-            copy={copy}
+            evSeries={evSeries}
+            iceSeries={iceSeries}
             format={(value) => formatNumber(value, lang, 2)}
           />
           <p className="px-1 text-xs leading-5 text-muted-foreground">
-            {copy.evSeries}: {evBoundary}. {copy.iceSeries}: {iceBoundary}.
+            {evSeries}: {evBoundary}. {iceSeries}: {iceBoundary}.
           </p>
         </ChartCard>
         <div className="grid content-start gap-3 rounded-xl bg-card p-4 ring-1 ring-foreground/10">
           <p className="text-sm font-medium">{copy.gPerKm}</p>
-          <Figure label={copy.evSeries} value={gPerKm.ev} lang={lang} />
-          <Figure label={copy.iceSeries} value={gPerKm.ice} lang={lang} />
+          <Figure label={evSeries} value={gPerKm.ev} lang={lang} />
+          <Figure label={iceSeries} value={gPerKm.ice} lang={lang} />
         </div>
       </div>
       <ChartCard title={copy.projectionTitle} unit={currency}>
@@ -112,8 +121,8 @@ export function Charts({
               <YAxis tick={{ fill: "#5e574c", fontSize: 12 }} width={56} />
               <Tooltip formatter={(value) => money(Number(value))} />
               <Legend />
-              <Line type="monotone" dataKey="ev" name={copy.evSeries} stroke={EV} strokeWidth={2.5} dot={false} />
-              <Line type="monotone" dataKey="ice" name={copy.iceSeries} stroke={ICE} strokeWidth={2.5} dot={false} />
+              <Line type="monotone" dataKey="ev" name={evSeries} stroke={EV} strokeWidth={2.5} dot={false} />
+              <Line type="monotone" dataKey="ice" name={iceSeries} stroke={ICE} strokeWidth={2.5} dot={false} />
             </LineChart>
           </ResponsiveContainer>
         </div>
@@ -147,11 +156,13 @@ function ChartCard({ title, unit, children }: { title: string; unit: string; chi
 
 function Bars({
   data,
-  copy,
+  evSeries,
+  iceSeries,
   format,
 }: {
   data: { name: string; ev: number; ice: number }[]
-  copy: Copy
+  evSeries: string
+  iceSeries: string
   format: (value: number) => string
 }) {
   return (
@@ -163,8 +174,8 @@ function Bars({
           <YAxis tick={{ fill: "#5e574c", fontSize: 12 }} width={56} />
           <Tooltip formatter={(value) => format(Number(value))} />
           <Legend />
-          <Bar dataKey="ev" name={copy.evSeries} fill={EV} radius={[4, 4, 0, 0]} />
-          <Bar dataKey="ice" name={copy.iceSeries} fill={ICE} radius={[4, 4, 0, 0]} />
+          <Bar dataKey="ev" name={evSeries} fill={EV} radius={[4, 4, 0, 0]} />
+          <Bar dataKey="ice" name={iceSeries} fill={ICE} radius={[4, 4, 0, 0]} />
         </BarChart>
       </ResponsiveContainer>
     </div>
