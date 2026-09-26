@@ -2,7 +2,7 @@
 
 Comparador de **uso**: energía y CO₂ de un eléctrico de batería frente a un coche con motor de combustión (gasolina, diésel, híbrido o enchufable), en un país de la UE-27, Estados Unidos o el Reino Unido.
 
-No calcula la compra, el seguro ni el mantenimiento. Los precios salen de una foto estática fechada. El consumo sale de la EPA (fueleconomy.gov).
+No calcula la compra, el seguro ni el mantenimiento. Los precios salen de una foto estática fechada. La lista de modelos es la del país: EPA en Estados Unidos y el seguimiento de turismos de la AEMA en la UE-27. El consumo es EPA cuando esa marca y ese modelo están en fueleconomy.gov; si no, es el WLTP publicado, etiquetado y sin convertir un ciclo en el otro. El Reino Unido no tiene lista: la descarga de la VCA no está disponible.
 
 La interfaz está en español (por defecto) y en inglés.
 
@@ -35,7 +35,9 @@ Si una descarga obligatoria falla, el script se detiene y dice qué fuente fall�
 
 ## Fuentes
 
-- Vehículos: [fueleconomy.gov](https://www.fueleconomy.gov/feg/ws/index.shtml), CSV público.
+- Estados Unidos, vehículos y consumo EPA: [fueleconomy.gov](https://www.fueleconomy.gov/feg/ws/index.shtml), CSV público.
+- UE-27, lista de modelos y WLTP cuando no hay ficha EPA: [seguimiento de CO₂ de turismos de la AEMA](https://co2cars.apps.eea.europa.eu/), licencia [CC BY 2.5 DK](http://creativecommons.org/licenses/by/2.5/dk/deed.en_GB). El agregado está en `data/snapshot/country-catalog.json`. Se regenera con `python3 scripts/build_country_catalog.py`.
+- Reino Unido, modelos: la [VCA](https://www.vehicle-certification-agency.gov.uk/information-for-cars/) dice que la base descargable no está disponible. La lista queda vacía.
 - Gasolina y diésel UE-27: [Oil Bulletin](https://energy.ec.europa.eu/data-and-analysis/weekly-oil-bulletin_en), con impuestos. En países fuera del euro, el boletín está en euros y se muestra en la moneda nacional con el tipo BCE del día del boletín (Frankfurter). El precio en euros no se sustituye.
 - Luz hogares UE-27: [Eurostat nrg_pc_204](https://ec.europa.eu/eurostat/databrowser/view/nrg_pc_204/default/table), banda 2.500–4.999 kWh, impuestos incluidos.
 - EE. UU.: [EIA](https://www.eia.gov/petroleum/gasdiesel/), un precio nacional de gasolina regular, diésel y luz residencial (tabla 5.3).

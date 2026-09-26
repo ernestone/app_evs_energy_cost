@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useMemo, useState, type ReactNode } from "react"
+import { useEffect, useMemo, useRef, useState, type ReactNode } from "react"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import type { Copy } from "@/lib/i18n"
@@ -9,34 +9,71 @@ import type { Side, Vehicle } from "@/lib/types"
 const fieldClass =
   "h-9 w-full rounded-lg border border-input bg-card px-2.5 text-sm text-foreground outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50"
 
+interface ModelOption {
+  id: string
+  label: string
+  powertrain?: keyof Copy["powertrain"]
+}
+
+interface Failure {
+  source: string
+  url: string
+  detail: string
+}
+
+interface EpaResolution {
+  resolution: "epa"
+  catalogName: string
+  epaMake: string
+  epaModel: string
+  namesDiffer: boolean
+  years: number[]
+  sourceUrl: string
+  sourceName: string
+}
+
+interface WltpResolution {
+  resolution: "wltp"
+  vehicle: Vehicle
+}
+
 export function VehiclePicker({
   side,
+  country,
   copy,
   selected,
   onSelect,
 }: {
   side: Side
+  country: string
   copy: Copy
   selected: Vehicle | null
   onSelect: (vehicle: Vehicle | null) => void
 }) {
   const [makes, setMakes] = useState<string[]>([])
-  const [models, setModels] = useState<string[]>([])
+  const [models, setModels] = useState<ModelOption[]>([])
   const [years, setYears] = useState<number[]>([])
   const [trims, setTrims] = useState<{ id: number; label: string }[]>([])
   const [make, setMake] = useState("")
   const [model, setModel] = useState("")
   const [year, setYear] = useState("")
   const [query, setQuery] = useState("")
-  const [loading, setLoading] = useState(true)
+  const [loading, setLoading] = useState(false)
+  const [failure, setFailure] = useState<Failure | null>(null)
+  const [epaNote, setEpaNote] = useState<EpaResolution | null>(null)
+  const epaNoteRef = useRef<EpaResolution | null>(null)
 
   useEffect(() => {
+    if (!country) return
     let cancel = false
     setLoading(true)
-    fetch(`/api/catalog?side=${side}`)
+    setFailure(null)
+    fetch(`/api/catalog?side=${side}&country=${encodeURIComponent(country)}`)
       .then((response) => response.json())
-      .then((data: { makes: string[] }) => {
-        if (!cancel) setMakes(data.makes ?? [])
+      .then((data: { makes: string[]; failure: Failure | null }) => {
+        if (cancel) return
+        setMakes(data.makes ?? [])
+        setFailure(data.failure)
       })
       .catch(() => {
         if (!cancel) setMakes([])
@@ -47,25 +84,27 @@ export function VehiclePicker({
     return () => {
       cancel = true
     }
-  }, [side])
+  }, [side, country])
 
   useEffect(() => {
-    if (!make) return
+    if (!country || !make) return
     let cancel = false
-    fetch(`/api/catalog?side=${side}&make=${encodeURIComponent(make)}`)
+    fetch(`/api/catalog?side=${side}&country=${encodeURIComponent(country)}&make=${encodeURIComponent(make)}`)
       .then((response) => response.json())
-      .then((data: { models: string[] }) => {
+      .then((data: { models: ModelOption[] }) => {
         if (!cancel) setModels(data.models ?? [])
       })
     return () => {
       cancel = true
     }
-  }, [side, make])
+  }, [side, country, make])
 
   useEffect(() => {
-    if (!make || !model) return
+    if (!country || !make || !model || country !== "US") return
     let cancel = false
-    fetch(`/api/catalog?side=${side}&make=${encodeURIComponent(make)}&model=${encodeURIComponent(model)}`)
+    fetch(
+      `/api/catalog?side=${side}&country=US&make=${encodeURIComponent(make)}&model=${encodeURIComponent(model)}`,
+    )
       .then((response) => response.json())
       .then((data: { years: number[] }) => {
         if (cancel) return
@@ -76,13 +115,14 @@ export function VehiclePicker({
     return () => {
       cancel = true
     }
-  }, [side, make, model])
+  }, [side, country, make, model])
 
   useEffect(() => {
     if (!make || !model || !year) return
     let cancel = false
+    const yearCountry = country === "US" ? "US" : country
     fetch(
-      `/api/catalog?side=${side}&make=${encodeURIComponent(make)}&model=${encodeURIComponent(model)}&year=${year}`,
+      `/api/catalog?side=${side}&country=${encodeURIComponent(yearCountry)}&make=${encodeURIComponent(make)}&model=${encodeURIComponent(model)}&year=${year}`,
     )
       .then((response) => response.json())
       .then((data: { trims: { id: number; label: string }[] }) => {
@@ -91,7 +131,7 @@ export function VehiclePicker({
     return () => {
       cancel = true
     }
-  }, [side, make, model, year])
+  }, [side, country, make, model, year])
 
   useEffect(() => {
     if (trims.length !== 1) return
@@ -105,11 +145,9 @@ export function VehiclePicker({
     [makes, needle],
   )
   const shownModels = useMemo(
-    () => models.filter((item) => item.toLowerCase().includes(needle)),
+    () => models.filter((item) => item.label.toLowerCase().includes(needle) || item.id.toLowerCase().includes(needle)),
     [models, needle],
   )
-  const shownYears = years
-  const shownTrims = trims
 
   async function chooseTrim(id: string) {
     if (!id) {
@@ -118,17 +156,57 @@ export function VehiclePicker({
     }
     const response = await fetch(`/api/vehicle/${id}`)
     if (!response.ok) return
-    onSelect((await response.json()) as Vehicle)
+    const vehicle = (await response.json()) as Vehicle
+    onSelect({
+      ...vehicle,
+      cycle: "EPA",
+      listedName: epaNoteRef.current?.catalogName,
+    })
+  }
+
+  async function chooseModel(id: string) {
+    setModel(id)
+    setYear("")
+    setYears([])
+    setTrims([])
+    setEpaNote(null)
+    epaNoteRef.current = null
+    onSelect(null)
+    if (!id || country === "US") return
+    const response = await fetch(
+      `/api/catalog?side=${side}&country=${encodeURIComponent(country)}&make=${encodeURIComponent(make)}&model=${encodeURIComponent(id)}&resolve=1`,
+    )
+    if (!response.ok) return
+    const data = (await response.json()) as EpaResolution | WltpResolution
+    if (data.resolution === "wltp") {
+      onSelect(data.vehicle)
+      return
+    }
+    setEpaNote(data)
+    epaNoteRef.current = data
+    setYears(data.years)
+    setYear(data.years.length === 1 ? String(data.years[0]) : "")
   }
 
   return (
     <div className="grid gap-3">
+      {!country ? <p className="text-sm leading-6 text-muted-foreground">{copy.needCountry}</p> : null}
+      {failure ? (
+        <p className="text-sm leading-6">
+          {copy.catalogFailed}{" "}
+          <a className="underline" href={failure.url}>
+            {failure.source}
+          </a>
+          . {failure.detail}
+        </p>
+      ) : null}
       <div className="grid gap-3 sm:grid-cols-2">
         <Field label={copy.make}>
           <select
             className={fieldClass}
             value={make}
             aria-label={copy.make}
+            disabled={!country || Boolean(failure)}
             onChange={(event) => {
               setMake(event.target.value)
               setModel("")
@@ -136,6 +214,7 @@ export function VehiclePicker({
               setYears([])
               setModels([])
               setTrims([])
+              setEpaNote(null)
               onSelect(null)
             }}
           >
@@ -153,18 +232,12 @@ export function VehiclePicker({
             value={model}
             aria-label={copy.model}
             disabled={!make}
-            onChange={(event) => {
-              setModel(event.target.value)
-              setYear("")
-              setYears([])
-              setTrims([])
-              onSelect(null)
-            }}
+            onChange={(event) => void chooseModel(event.target.value)}
           >
             <option value="">{copy.choose}</option>
             {shownModels.map((item) => (
-              <option key={item} value={item}>
-                {item}
+              <option key={item.id} value={item.id}>
+                {modelLabel(item, shownModels, copy)}
               </option>
             ))}
           </select>
@@ -185,7 +258,7 @@ export function VehiclePicker({
                 }}
               >
                 <option value="">{copy.choose}</option>
-                {shownYears.map((item) => (
+                {years.map((item) => (
                   <option key={item} value={item}>
                     {item}
                   </option>
@@ -197,12 +270,12 @@ export function VehiclePicker({
             <Field label={copy.version}>
               <select
                 className={fieldClass}
-                value={selected?.id ?? ""}
+                value={selected?.cycle === "EPA" ? selected.id : ""}
                 aria-label={copy.version}
                 onChange={(event) => void chooseTrim(event.target.value)}
               >
                 <option value="">{copy.choose}</option>
-                {shownTrims.map((item) => (
+                {trims.map((item) => (
                   <option key={item.id} value={item.id}>
                     {item.label}
                   </option>
@@ -219,18 +292,42 @@ export function VehiclePicker({
         <p className="text-sm leading-6 text-muted-foreground">{copy.noModelMatch}</p>
       ) : null}
       {loading ? <p className="text-sm text-muted-foreground">{copy.loading}</p> : null}
-      {selected ? (
+      {epaNote ? (
+        <p className="text-sm leading-6">
+          {epaNote.namesDiffer
+            ? copy.epaNames(epaNote.catalogName, `${epaNote.epaMake} ${epaNote.epaModel}`)
+            : copy.epaTrimNote}
+        </p>
+      ) : null}
+      {selected?.cycle === "WLTP" && selected.wltp ? (
+        <p className="text-sm leading-6">
+          <span className="font-medium">WLTP</span> · {selected.year} {selected.listedName}.{" "}
+          <a className="underline" href={selected.wltp.sourceUrl}>
+            {selected.wltp.sourceName}
+          </a>
+          . {selected.wltp.license}. {copy.wltpCombinedOnly}
+          {selected.powertrain === "phev" ? ` ${copy.wltpPhevNoCs}` : ""}
+        </p>
+      ) : null}
+      {selected?.cycle === "EPA" ? (
         <p className="text-sm text-foreground">
           <span className="font-medium">
-            {selected.year} {selected.make} {selected.version}
+            EPA · {selected.year} {selected.make} {selected.version}
           </span>
-          {selected.year < 2013 ? (
-            <span className="mt-1 block text-amber-900">{copy.estimated}</span>
+          {selected.listedName && selected.listedName.toUpperCase() !== `${selected.make} ${selected.model}`.toUpperCase() ? (
+            <span className="mt-1 block text-muted-foreground">{copy.listedAs(selected.listedName)}</span>
           ) : null}
+          {selected.year < 2013 ? <span className="mt-1 block text-amber-900">{copy.estimated}</span> : null}
         </p>
       ) : null}
     </div>
   )
+}
+
+function modelLabel(item: ModelOption, all: ModelOption[], copy: Copy) {
+  const twins = all.filter((other) => other.label === item.label).length
+  if (twins < 2 || !item.powertrain) return item.label
+  return `${item.label} · ${copy.powertrain[item.powertrain]}`
 }
 
 function Field({ label, children }: { label: string; children: ReactNode }) {

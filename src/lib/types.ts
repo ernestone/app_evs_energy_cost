@@ -3,6 +3,7 @@ export type Side = "ev" | "ice"
 export type Powertrain = "ev" | "gasoline" | "diesel" | "hev" | "ffv" | "phev"
 export type Fuel = "electricity" | "gasoline" | "premium" | "diesel"
 export type PhevMode = "epa" | "custom" | "icct26" | "icct56"
+export type Cycle = "EPA" | "WLTP"
 
 export interface Vehicle {
   id: number
@@ -30,6 +31,23 @@ export interface Vehicle {
   rangeMi: number | null
   rangeAMi: number | null
   charge240: number | null
+  /** Absent on the EPA snapshot. The loader treats that as EPA. */
+  cycle?: Cycle
+  /** Country-catalog commercial name, when the list did not come from the EPA file. */
+  listedName?: string
+  wltp?: {
+    lPer100km: number | null
+    co2GPerKm: number | null
+    kwhPer100km: number | null
+    electricRangeKm: number | null
+    /** Null when the source has no separate charge-sustaining column. */
+    chargeSustainingLPer100km: null
+    sourceUrl: string
+    sourceName: string
+    license: string
+    licenseUrl: string
+    figureYear: number
+  }
 }
 
 export interface PricePoint {
@@ -99,4 +117,34 @@ export interface SnapshotMeta {
     note: string
   }
   ukElectricity: string
+  countryCatalog?: CountryCatalogMeta
+}
+
+export interface CountryCatalogMeta {
+  generatedAt: string
+  eu: {
+    status: "ok"
+    source: string
+    url: string
+    index: string
+    retrieved: string
+    years: string
+    license: string
+    licenseUrl: string
+    regulation: string
+    note: string
+  }
+  gb: {
+    status: "failed"
+    source: string
+    url: string
+    retrieved: string
+    detail: string
+  }
+  us: {
+    status: "ok"
+    source: string
+    url: string
+    cycle: "EPA"
+  }
 }

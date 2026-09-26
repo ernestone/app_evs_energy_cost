@@ -232,6 +232,19 @@ interface Measured {
 }
 
 function measureEv(vehicle: Vehicle, input: DriveInput): Measured | null {
+  if (vehicle.cycle === "WLTP") {
+    const per100 = vehicle.wltp?.kwhPer100km
+    if (per100 == null || per100 <= 0) return null
+    return {
+      litersYear: 0,
+      kwhYear: (input.kmYear / 100) * per100,
+      gallons: 0,
+      miles: input.kmYear / MI_TO_KM,
+      electricShare: null,
+      officialUf: null,
+      usePublishedCo2: false,
+    }
+  }
   const per100Mi = kwhPer100Miles(vehicle, input.cityShare)
   if (per100Mi == null) return null
   const miles = input.kmYear / MI_TO_KM
@@ -247,6 +260,7 @@ function measureEv(vehicle: Vehicle, input: DriveInput): Measured | null {
 }
 
 function measureIce(vehicle: Vehicle, input: DriveInput): Measured | null {
+  if (vehicle.cycle === "WLTP") return measureWltpIce(vehicle, input)
   const miles = input.kmYear / MI_TO_KM
   if (vehicle.powertrain !== "phev") {
     const mpg = mpgForSplit(vehicle, input.cityShare)
@@ -287,14 +301,38 @@ function measureIce(vehicle: Vehicle, input: DriveInput): Measured | null {
   }
 }
 
+function measureWltpIce(vehicle: Vehicle, input: DriveInput): Measured | null {
+  const wltp = vehicle.wltp
+  if (!wltp) return null
+  const liters = wltp.lPer100km != null ? (input.kmYear / 100) * wltp.lPer100km : 0
+  const kwh =
+    vehicle.powertrain === "phev" && wltp.kwhPer100km != null
+      ? (input.kmYear / 100) * wltp.kwhPer100km
+      : 0
+  if (vehicle.powertrain === "phev") {
+    if (wltp.lPer100km == null && wltp.kwhPer100km == null) return null
+  } else if (wltp.lPer100km == null) {
+    return null
+  }
+  return {
+    litersYear: liters,
+    kwhYear: kwh,
+    gallons: liters / GAL_TO_L,
+    miles: input.kmYear / MI_TO_KM,
+    electricShare: null,
+    officialUf: null,
+    usePublishedCo2: wltp.co2GPerKm != null,
+  }
+}
+
 function priceEv(vehicle: Vehicle, measured: Measured, prices: Prices, input: DriveInput): SideFigures {
   const side = blank()
   const price = prices.electricityPerKwh ?? 0
   side.kwhYear = measured.kwhYear
   side.kwhEqPer100Km = measured.kwhYear / (input.kmYear / 100)
   side.costYear = measured.kwhYear * price
-  side.rangeKm = vehicle.rangeMi ? vehicle.rangeMi * MI_TO_KM : null
-  side.charge240 = vehicle.charge240
+  side.rangeKm = vehicle.cycle === "WLTP" ? vehicle.wltp?.electricRangeKm ?? null : vehicle.rangeMi ? vehicle.rangeMi * MI_TO_KM : null
+  side.charge240 = vehicle.cycle === "WLTP" ? null : vehicle.charge240
   if (prices.gridGPerKwh == null) {
     side.co2Tonnes = null
     side.gPerKm = null
@@ -320,29 +358,46 @@ function priceIce(vehicle: Vehicle, measured: Measured, prices: Prices, input: D
   side.officialUf = measured.officialUf
   side.premium = vehicle.fuel === "premium"
   side.ffv = vehicle.powertrain === "ffv"
-  side.rangeKm = vehicle.rangeMi ? vehicle.rangeMi * MI_TO_KM : null
-  side.electricRangeKm = vehicle.rangeAMi ? vehicle.rangeAMi * MI_TO_KM : null
-  side.charge240 = vehicle.powertrain === "phev" ? vehicle.charge240 : null
+  side.rangeKm = vehicle.cycle === "WLTP" ? null : vehicle.rangeMi ? vehicle.rangeMi * MI_TO_KM : null
+  side.electricRangeKm =
+    vehicle.cycle === "WLTP"
+      ? vehicle.powertrain === "phev"
+        ? vehicle.wltp?.electricRangeKm ?? null
+        : null
+      : vehicle.rangeAMi
+        ? vehicle.rangeAMi * MI_TO_KM
+        : null
+  side.charge240 = vehicle.cycle === "WLTP" ? null : vehicle.powertrain === "phev" ? vehicle.charge240 : null
   side.costYear = measured.litersYear * fuelPrice + measured.kwhYear * elecPrice
   const litersPer100 = measured.litersYear / (input.kmYear / 100)
   const kwhPer100 = measured.kwhYear / (input.kmYear / 100)
   side.kwhEqPer100Km = kwhPer100 + litersPer100 * KWH_PER_L
 
   let grams = 0
-  if (measured.usePublishedCo2 && vehicle.co2Gpm != null) {
+  if (vehicle.cycle === "WLTP") {
+    if (vehicle.wltp?.co2GPerKm != null) grams = vehicle.wltp.co2GPerKm * input.kmYear
+  } else if (measured.usePublishedCo2 && vehicle.co2Gpm != null) {
     grams = vehicle.co2Gpm * measured.miles
   } else if (measured.gallons > 0) {
     grams = measured.gallons * (vehicle.fuel === "diesel" ? DIESEL_G_PER_GAL : GAS_G_PER_GAL)
     side.co2FromFactor = true
   }
   side.tailpipeTonnes = grams / 1_000_000
-  side.co2Estimated = vehicle.year < 2013
+  side.co2Estimated = vehicle.cycle === "WLTP" ? false : vehicle.year < 2013
   const gasolineLike = vehicle.fuel === "gasoline" || vehicle.fuel === "premium"
   if (input.upstream && gasolineLike && grams > 0) {
     side.upstreamTonnes = (grams * (UPSTREAM_MULTIPLIER - 1)) / 1_000_000
     side.upstreamApplies = true
   }
   if (input.upstream && vehicle.fuel === "diesel") side.upstreamSkippedDiesel = true
+
+  if (vehicle.cycle === "WLTP" && vehicle.wltp?.co2GPerKm == null) {
+    side.co2Tonnes = null
+    side.gPerKm = null
+    side.costMonth = side.costYear / 12
+    side.costPer100Km = side.costYear / (input.kmYear / 100)
+    return side
+  }
 
   const wantsGrid = vehicle.powertrain === "phev" && measured.kwhYear > 0
   if (wantsGrid && prices.gridGPerKwh == null) {

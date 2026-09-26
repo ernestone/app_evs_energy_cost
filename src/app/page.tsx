@@ -1,4 +1,5 @@
 import { Comparator } from "@/components/comparator"
+import { countryCatalogMeta } from "@/lib/catalog"
 import type { Country, FxTable, SnapshotMeta } from "@/lib/types"
 import countries from "../../data/snapshot/countries.json"
 import fx from "../../data/snapshot/fx.json"
@@ -10,6 +11,7 @@ export default function HomePage() {
       countries={countries as Country[]}
       fx={fx as FxTable}
       meta={meta as SnapshotMeta}
+      catalog={countryCatalogMeta()}
     />
   )
 }

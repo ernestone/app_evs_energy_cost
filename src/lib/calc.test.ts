@@ -12,6 +12,7 @@ import {
   type DriveInput,
   type Prices,
 } from "./calc.ts"
+import { sameModel } from "./match.ts"
 import type { Vehicle } from "./types.ts"
 
 function vehicle(partial: Partial<Vehicle> & Pick<Vehicle, "side" | "powertrain" | "fuel">): Vehicle {
@@ -231,4 +232,64 @@ test("model years before 2013 are marked as estimated CO2", () => {
   if (!result.ok) return
   assert.equal(result.ice.co2Estimated, true)
   assert.equal(result.ev.co2Estimated, false)
+})
+
+test("WLTP combined ignores the city split and does not invent EPA miles", () => {
+  const ev = vehicle({
+    side: "ev",
+    powertrain: "ev",
+    fuel: "electricity",
+    cycle: "WLTP",
+    wltp: {
+      lPer100km: null,
+      co2GPerKm: 0,
+      kwhPer100km: 16.6,
+      electricRangeKm: 435,
+      chargeSustainingLPer100km: null,
+      sourceUrl: "https://co2cars.apps.eea.europa.eu/",
+      sourceName: "EEA",
+      license: "CC BY 2.5 DK",
+      licenseUrl: "http://creativecommons.org/licenses/by/2.5/dk/deed.en_GB",
+      figureYear: 2024,
+    },
+  })
+  const ice = vehicle({
+    side: "ice",
+    powertrain: "hev",
+    fuel: "gasoline",
+    cycle: "WLTP",
+    year: 2025,
+    wltp: {
+      lPer100km: 6.3,
+      co2GPerKm: 143,
+      kwhPer100km: null,
+      electricRangeKm: null,
+      chargeSustainingLPer100km: null,
+      sourceUrl: "https://co2cars.apps.eea.europa.eu/",
+      sourceName: "EEA",
+      license: "CC BY 2.5 DK",
+      licenseUrl: "http://creativecommons.org/licenses/by/2.5/dk/deed.en_GB",
+      figureYear: 2025,
+    },
+  })
+  const city = compare(ev, ice, prices({ gasolinePerLiter: 1.5, electricityPerKwh: 0.2 }), drive({ kmYear: 15000, cityShare: 0.55 }))
+  const highway = compare(ev, ice, prices({ gasolinePerLiter: 1.5, electricityPerKwh: 0.2 }), drive({ kmYear: 15000, cityShare: 0.1 }))
+  assert.equal(city.ok, true)
+  assert.equal(highway.ok, true)
+  if (!city.ok || !highway.ok) return
+  assert.equal(city.ice.litersYear, 945)
+  assert.equal(highway.ice.litersYear, 945)
+  assert.equal(city.ev.kwhYear, 2490)
+  assert.equal(city.ice.tailpipeTonnes, (143 * 15000) / 1_000_000)
+  assert.equal(city.ice.co2FromFactor, false)
+  assert.equal(city.ice.co2Estimated, false)
+  assert.equal(city.ev.rangeKm, 435)
+})
+
+test("Qashqai is not the EPA Rogue Sport", () => {
+  assert.equal(sameModel("NISSAN", "NISSAN QASHQAI", "Nissan", "Rogue Sport"), false)
+  assert.equal(sameModel("NISSAN", "QASHQAI", "Nissan", "Rogue"), false)
+  assert.equal(sameModel("TESLA", "TESLA MODEL 3", "Tesla", "Model 3"), true)
+  assert.equal(sameModel("NISSAN", "ROGUE", "Nissan", "Rogue"), true)
+  assert.equal(sameModel("NISSAN", "ROGUE SPORT", "Nissan", "Rogue"), false)
 })

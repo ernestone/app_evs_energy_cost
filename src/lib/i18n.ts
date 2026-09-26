@@ -40,16 +40,44 @@ export function copy(lang: Lang) {
     yearWord: es ? "Año" : "Year",
     make: es ? "Marca" : "Make",
     model: es ? "Modelo" : "Model",
+    powertrain: {
+      ev: es ? "batería" : "battery",
+      gasoline: es ? "gasolina" : "gasoline",
+      diesel: es ? "diésel" : "diesel",
+      hev: es ? "híbrido" : "hybrid",
+      ffv: es ? "flexible" : "flex-fuel",
+      phev: es ? "enchufable" : "plug-in",
+    },
     version: es ? "Versión" : "Version",
     filter: es ? "Filtrar la lista" : "Filter the list",
     noModelMatch: es
-      ? "Ningún modelo de esta marca en el catálogo EPA contiene ese texto. Si no se vendió en EE. UU. con ese nombre, no está en la ficha."
-      : "No model of this make in the EPA catalog contains that text. If it was not sold in the US under that name, it is not in the file.",
+      ? "Ningún modelo de esta marca en el catálogo del país contiene ese texto."
+      : "No model of this make in this country’s catalog contains that text.",
+    needCountry: es ? "Elige antes el país. La lista de modelos sale de ese país." : "Choose the country first. The model list comes from that country.",
+    catalogFailed: es ? "Este país no tiene catálogo en la foto. Falló esta fuente:" : "This country has no catalog in the snapshot. This source failed:",
+    epaTrimNote: es
+      ? "El consumo es EPA: misma marca y mismo modelo. Las versiones no coinciden una a una con el coche vendido en este país."
+      : "Consumption is EPA: same make and model. Trims do not match the car sold in this country one for one.",
+    epaNames: (catalogName: string, epaName: string) =>
+      es
+        ? `En el catálogo del país el nombre es ${catalogName}. En la EPA es ${epaName}. No se tratan como el mismo coche si el nombre no coincide; aquí sí coincide la marca y el modelo. Las versiones pueden diferir. El consumo es EPA.`
+        : `The country catalog calls it ${catalogName}. The EPA file calls it ${epaName}. Different names are not treated as the same car; this match is the same make and model. Trims can differ. Consumption is EPA.`,
+    listedAs: (name: string) => (es ? `Nombre en el catálogo del país: ${name}.` : `Name in the country catalog: ${name}.`),
+    wltpCombinedOnly: es
+      ? "Solo hay combinado. El archivo no publica ciudad y carretera, así que el reparto 55/45 no mueve esta cifra."
+      : "Only the combined figure is published. That file has no city and highway split, so the 55/45 control does not move this number.",
+    wltpPhevNoCs: es
+      ? "El enchufable muestra el consumo oficial del archivo (Fc, Z y CO₂ Ewltp, cada uno con su etiqueta). No hay una columna aparte de batería agotada, así que no se inventa."
+      : "The plug-in shows the file’s official figures (Fc, Z, and Ewltp CO₂), each labeled. There is no separate charge-sustaining column, so none is invented.",
+    cycleLink: es ? "Ciclo" : "Cycle",
+    splitSkipped: es
+      ? "Si un coche es solo WLTP, su cifra sigue siendo el combinado de esa fuente. El 55/45 solo cambia los coches EPA que traen ciudad y carretera."
+      : "A WLTP-only car stays on that source’s combined figure. 55/45 only changes EPA cars that publish city and highway.",
     choose: es ? "Elegir" : "Choose",
     loading: es ? "Cargando el catálogo…" : "Loading the catalog…",
     catalogNote: es
-      ? "Catálogo EPA de coches homologados en EE. UU. Una versión europea puede llevar otra llanta, batería o tracción."
-      : "EPA catalog of vehicles certified in the United States. A European trim may differ in wheels, battery, or drivetrain.",
+      ? "La lista es la del país. Si esa marca y ese modelo están en la EPA, el consumo es EPA y se etiqueta así. Si no, es WLTP, también etiquetado. No se convierte un ciclo en el otro."
+      : "The list is the country’s. If that make and model are in the EPA file, consumption is EPA and labeled as such. Otherwise it is WLTP, also labeled. One cycle is not converted into the other.",
     iceNote: es
       ? "Gasolina, diésel, híbrido no enchufable y enchufable. El lado eléctrico solo admite batería, sin motor de combustión."
       : "Gasoline, diesel, non-plug-in hybrid, and plug-in hybrid. The electric side is battery-only.",
@@ -124,7 +152,7 @@ export function copy(lang: Lang) {
       ? [
           "La luz es el promedio doméstico del país, con impuestos. No es la tarifa valle ni el cargador rápido.",
           "La gasolina y el diésel son precios al consumidor con impuestos, no el surtidor de una esquina.",
-          "El catálogo es el de fueleconomy.gov: coches de EE. UU. Una versión europea puede no coincidir.",
+          "Estados Unidos lista los coches de fueleconomy.gov. La UE-27 lista el seguimiento de la AEMA. El Reino Unido no copia ninguna de las dos: si su archivo no se pudo abrir, la lista queda vacía.",
           "Esto no incluye comprar el coche, el seguro, el mantenimiento, el punto de carga ni la fabricación de la batería.",
           "La intensidad de Ember es la de generar electricidad en ese territorio, del año que indica la ficha. No se añade un factor de pérdidas de red.",
           "El gráfico de cinco años congela el precio de hoy. Es una proyección, no un pronóstico.",
@@ -132,7 +160,7 @@ export function copy(lang: Lang) {
       : [
           "Electricity is the country’s household average, taxes included. It is not a night rate and not fast charging.",
           "Gasoline and diesel are consumer prices with tax, not one station on one corner.",
-          "The catalog is fueleconomy.gov: United States vehicles. A European trim may not match.",
+          "The United States lists fueleconomy.gov cars. The EU-27 lists the EEA monitoring file. The United Kingdom does not copy either list: if its file could not be opened, the list stays empty.",
           "Buying the car, insurance, maintenance, a home charger, and building the battery are not included.",
           "Ember’s intensity is for generating electricity in that territory, for the year on the card. No grid-loss factor is added.",
           "The five-year chart freezes today’s price. It is a projection, not a forecast.",
@@ -163,6 +191,12 @@ export function copy(lang: Lang) {
     ember: es
       ? "Ember, datos anuales de electricidad, intensidad de CO₂ del sector eléctrico. Licencia CC BY 4.0."
       : "Ember yearly electricity data, power-sector CO₂ intensity. CC BY 4.0.",
+    eea: es
+      ? "Agencia Europea de Medio Ambiente, seguimiento de CO₂ de turismos. La lista de la UE-27 y, si no hay ficha EPA, el WLTP combinado (Fc en l/100 km, Ewltp en g/km, Z en Wh/km)."
+      : "European Environment Agency, monitoring of CO₂ from passenger cars. The EU-27 list and, when there is no EPA listing, the combined WLTP figure (Fc in l/100 km, Ewltp in g/km, Z in Wh/km).",
+    vcaFailed: es
+      ? "Reino Unido: la base descargable de la VCA no está disponible. No se ha copiado la lista de otro país."
+      : "United Kingdom: the downloadable VCA database is unavailable. No other country’s list was copied in.",
     vehiclesKept: es
       ? "El JSON de coches guarda solo los campos de esta pantalla, desde el año modelo 2000. Sin MSRP."
       : "The vehicle JSON keeps only the fields this screen uses, from model year 2000. No MSRP.",
