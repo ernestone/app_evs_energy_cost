@@ -4,7 +4,7 @@ import type { Lang } from "./types"
 export function copy(lang: Lang) {
   const es = lang === "es"
   return {
-    name: "Paralelo",
+    name: "EV comparator",
     tagline: es
       ? "Cuánto cuestan la energía y el CO₂ de usar dos coches, en un país."
       : "What the energy and CO₂ of using two cars cost, in one country.",
@@ -166,6 +166,15 @@ export function copy(lang: Lang) {
     perYear: es ? "al año" : "per year",
     perMonth: es ? "al mes" : "per month",
     per100: es ? "por 100 km" : "per 100 km",
+    consumption: es ? "Consumo" : "Consumption",
+    litersPer100: es ? "Litros por 100 km" : "Litres per 100 km",
+    kwhPer100: es ? "kWh por 100 km" : "kWh per 100 km",
+    consumptionHint: es
+      ? "Empieza en la cifra oficial de este ciclo. Si la cambias, el gasto y el CO₂ usan tu número. El reparto ciudad/carretera ya no lo mueve."
+      : "Starts from this cycle’s official figure. If you change it, the spend and the CO₂ use your number. The city/highway split no longer moves it.",
+    consumptionInvalid: es
+      ? "El consumo tiene que ser un número mayor o igual que cero."
+      : "Consumption has to be a number greater than or equal to zero.",
     energyTitle: es ? "Energía" : "Energy",
     energyUnit: es ? "kWh equivalentes por 100 km" : "kWh-equivalent per 100 km",
     co2Title: "CO₂",

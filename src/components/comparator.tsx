@@ -10,7 +10,7 @@ import { Slider } from "@/components/ui/slider"
 import { Switch } from "@/components/ui/switch"
 import { BreakevenChart, Charts } from "@/components/charts"
 import { VehiclePicker } from "@/components/vehicle-picker"
-import { breakeven, compare, cumulativeCost, DEFAULT_CITY_SHARE, DEFAULT_KM_YEAR, electricityBlend, resolveElectricShare, type ElectricityBlend } from "@/lib/calc"
+import { breakeven, compare, cumulativeCost, DEFAULT_CITY_SHARE, DEFAULT_KM_YEAR, electricityBlend, ratesPer100, resolveElectricShare, type ElectricityBlend } from "@/lib/calc"
 import { crossRate, formatDate, formatMoney, formatNumber, parsePrice, priceInput } from "@/lib/format"
 import { copy, type Copy } from "@/lib/i18n"
 import type { Country, CountryCatalogMeta, FxTable, Lang, SnapshotMeta, Vehicle } from "@/lib/types"
@@ -20,6 +20,13 @@ const fieldClass =
   "h-9 w-full rounded-lg border border-input bg-card px-2.5 text-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50"
 
 type PowerRow = { id: string; label: string; percent: string; price: string }
+
+function editedRate(edited: boolean, raw: string) {
+  if (!edited) return { override: null as number | null, invalid: false }
+  const parsed = parsePrice(raw)
+  if (parsed == null) return { override: null, invalid: true }
+  return { override: parsed, invalid: false }
+}
 
 export function Comparator({
   countries,
@@ -44,6 +51,12 @@ export function Comparator({
   const [powerRows, setPowerRows] = useState<PowerRow[]>([])
   const [evPurchase, setEvPurchase] = useState("")
   const [icePurchase, setIcePurchase] = useState("")
+  const [evKwh, setEvKwh] = useState("")
+  const [evKwhEdited, setEvKwhEdited] = useState(false)
+  const [iceLiters, setIceLiters] = useState("")
+  const [iceLitersEdited, setIceLitersEdited] = useState(false)
+  const [iceKwh, setIceKwh] = useState("")
+  const [iceKwhEdited, setIceKwhEdited] = useState(false)
   const [ev, setEv] = useState<Vehicle | null>(null)
   const [ice, setIce] = useState<Vehicle | null>(null)
   const [kmYear, setKmYear] = useState(String(DEFAULT_KM_YEAR))
@@ -70,6 +83,12 @@ export function Comparator({
     ])
     setEvPurchase("")
     setIcePurchase("")
+    setEvKwh("")
+    setEvKwhEdited(false)
+    setIceLiters("")
+    setIceLitersEdited(false)
+    setIceKwh("")
+    setIceKwhEdited(false)
     setDisplay(country.currency)
     setEv(null)
     setIce(null)
@@ -85,6 +104,44 @@ export function Comparator({
   }, [lang])
 
   const km = Number(kmYear)
+  const rateInput = {
+    kmYear: 100,
+    cityShare: cityPct / 100,
+    phevMode,
+    customElectricShare: customShare,
+    upstream,
+  }
+  const evOfficialKwh = ev ? ratesPer100(ev, rateInput)?.kwhPer100 ?? null : null
+  const iceOfficial = ice ? ratesPer100(ice, rateInput) : null
+  const iceOfficialLiters = iceOfficial?.litersPer100 ?? null
+  const iceOfficialKwh = iceOfficial?.kwhPer100 ?? null
+  const showIceKwh = ice?.powertrain === "phev" || (iceOfficialKwh ?? 0) > 0
+
+  useEffect(() => {
+    setEvKwhEdited(false)
+  }, [ev?.id])
+
+  useEffect(() => {
+    setIceLitersEdited(false)
+    setIceKwhEdited(false)
+  }, [ice?.id])
+
+  useEffect(() => {
+    if (!evKwhEdited) setEvKwh(priceInput(evOfficialKwh))
+  }, [evOfficialKwh, evKwhEdited])
+
+  useEffect(() => {
+    if (!iceLitersEdited) setIceLiters(priceInput(iceOfficialLiters))
+  }, [iceOfficialLiters, iceLitersEdited])
+
+  useEffect(() => {
+    if (!iceKwhEdited) setIceKwh(priceInput(iceOfficialKwh))
+  }, [iceOfficialKwh, iceKwhEdited])
+
+  const evRate = editedRate(evKwhEdited, evKwh)
+  const iceFuelRate = editedRate(iceLitersEdited, iceLiters)
+  const iceElecRate = editedRate(iceKwhEdited, iceKwh)
+  const consumptionInvalid = Boolean(ev && ice && (evRate.invalid || iceFuelRate.invalid || (showIceKwh && iceElecRate.invalid)))
   const blend = electricityBlend(
     powerRows.map((row) => ({ percent: parsePrice(row.percent), pricePerKwh: parsePrice(row.price) })),
   )
@@ -103,6 +160,9 @@ export function Comparator({
       phevMode,
       customElectricShare: customShare,
       upstream,
+      evKwhPer100: evRate.override,
+      iceLitersPer100: iceFuelRate.override,
+      iceKwhPer100: showIceKwh ? iceElecRate.override : null,
     },
   )
 
@@ -133,7 +193,7 @@ export function Comparator({
       <header className="shrink-0 border-b border-border/80">
         <div className="mx-auto flex max-w-[92rem] flex-col gap-3 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
           <div className="min-w-0">
-            <p className="font-heading text-2xl tracking-tight">{text.name}</p>
+            <p className="font-heading text-2xl font-semibold tracking-tight">{text.name}</p>
             <p className="max-w-2xl text-sm leading-5 text-muted-foreground">{text.tagline}</p>
             <p className="max-w-2xl text-sm leading-5">{text.notTco}</p>
           </div>
@@ -288,6 +348,26 @@ export function Comparator({
           <Step n={2} title={text.steps.ev}>
             <p className="text-sm text-muted-foreground">{text.catalogNote}</p>
             <VehiclePicker key={`ev-${countryCode}`} side="ev" country={countryCode} copy={text} selected={ev} onSelect={setEv} />
+            {ev ? (
+              <ConsumptionField
+                label={text.kwhPer100}
+                ariaLabel={`${text.kwhPer100} ${text.evSeries}`}
+                hint={text.consumptionHint}
+                value={evKwh}
+                official={evOfficialKwh}
+                edited={evKwhEdited}
+                invalid={evRate.invalid}
+                invalidText={text.consumptionInvalid}
+                yours={text.yours}
+                officialLabel={text.official}
+                resetLabel={text.reset}
+                onChange={(value) => {
+                  setEvKwhEdited(true)
+                  setEvKwh(value)
+                }}
+                onReset={() => setEvKwhEdited(false)}
+              />
+            ) : null}
             <PurchaseField
               label={`${text.purchase} (${sourceCurrency})`}
               ariaLabel={`${text.purchase} ${text.evSeries}`}
@@ -306,6 +386,48 @@ export function Comparator({
               setPhevMode("epa")
               setCustomShare(null)
             }} />
+            {ice ? (
+              <div className="grid gap-3">
+                <ConsumptionField
+                  label={text.litersPer100}
+                  ariaLabel={`${text.litersPer100} ${text.iceSeries}`}
+                  hint={text.consumptionHint}
+                  value={iceLiters}
+                  official={iceOfficialLiters}
+                  edited={iceLitersEdited}
+                  invalid={iceFuelRate.invalid}
+                  invalidText={text.consumptionInvalid}
+                  yours={text.yours}
+                  officialLabel={text.official}
+                  resetLabel={text.reset}
+                  onChange={(value) => {
+                    setIceLitersEdited(true)
+                    setIceLiters(value)
+                  }}
+                  onReset={() => setIceLitersEdited(false)}
+                />
+                {showIceKwh ? (
+                  <ConsumptionField
+                    label={text.kwhPer100}
+                    ariaLabel={`${text.kwhPer100} ${text.iceSeries}`}
+                    hint={text.consumptionHint}
+                    value={iceKwh}
+                    official={iceOfficialKwh}
+                    edited={iceKwhEdited}
+                    invalid={iceElecRate.invalid}
+                    invalidText={text.consumptionInvalid}
+                    yours={text.yours}
+                    officialLabel={text.official}
+                    resetLabel={text.reset}
+                    onChange={(value) => {
+                      setIceKwhEdited(true)
+                      setIceKwh(value)
+                    }}
+                    onReset={() => setIceKwhEdited(false)}
+                  />
+                ) : null}
+              </div>
+            ) : null}
             <PurchaseField
               label={`${text.purchase} (${sourceCurrency})`}
               ariaLabel={`${text.purchase} ${text.iceSeries}`}
@@ -485,6 +607,7 @@ export function Comparator({
             lang={lang}
             result={result}
             blend={blend}
+            consumptionInvalid={consumptionInvalid}
             evPurchase={evPurchase}
             icePurchase={icePurchase}
             display={display}
@@ -496,6 +619,7 @@ export function Comparator({
             ev={ev}
             ice={ice}
             country={country}
+            kmYear={km}
             catalog={catalog}
           />
         </aside>
@@ -509,6 +633,7 @@ function Results({
   lang,
   result,
   blend,
+  consumptionInvalid,
   evPurchase,
   icePurchase,
   display,
@@ -520,12 +645,14 @@ function Results({
   ev,
   ice,
   country,
+  kmYear,
   catalog,
 }: {
   text: Copy
   lang: Lang
   result: ReturnType<typeof compare>
   blend: ElectricityBlend
+  consumptionInvalid: boolean
   evPurchase: string
   icePurchase: string
   display: string
@@ -537,6 +664,7 @@ function Results({
   ev: Vehicle | null
   ice: Vehicle | null
   country: Country | null
+  kmYear: number
   catalog: CountryCatalogMeta
 }) {
   if (!country || !ev || !ice) {
@@ -545,6 +673,17 @@ function Results({
         <Alert>
           <AlertTitle>{text.emptyTitle}</AlertTitle>
           <AlertDescription>{text.emptyBody}</AlertDescription>
+        </Alert>
+      </Panel>
+    )
+  }
+  if (consumptionInvalid) {
+    return (
+      <Panel title={text.steps.results}>
+        <Choice text={text} ev={ev} ice={ice} />
+        <Alert>
+          <AlertTitle>{text.consumption}</AlertTitle>
+          <AlertDescription>{text.consumptionInvalid}</AlertDescription>
         </Alert>
       </Panel>
     )
@@ -625,8 +764,8 @@ function Results({
         {display === sourceCurrency ? "" : ` · 1 ${sourceCurrency} = ${rate == null ? "—" : formatNumber(rate, lang, 4)} ${display}`}
       </p>
       <div className="grid gap-3 sm:grid-cols-2">
-        <Quantity text={text} lang={lang} title={text.evSeries} vehicle={ev} liters={null} kwh={result.ev.kwhYear} rangeKm={result.ev.rangeKm} electricRangeKm={null} charge={result.ev.charge240} estimated={false} catalog={catalog} />
-        <Quantity text={text} lang={lang} title={text.iceSeries} vehicle={ice} liters={result.ice.litersYear} kwh={result.ice.kwhYear || null} rangeKm={result.ice.rangeKm} electricRangeKm={result.ice.electricRangeKm} charge={result.ice.charge240} estimated={result.ice.co2Estimated} catalog={catalog} />
+        <Quantity text={text} lang={lang} title={text.evSeries} vehicle={ev} liters={null} kwh={result.ev.kwhYear} litersPer100={null} kwhPer100={per100(result.ev.kwhYear, kmYear)} gramsPerKm={result.ev.gPerKm} rangeKm={result.ev.rangeKm} electricRangeKm={null} charge={result.ev.charge240} estimated={false} catalog={catalog} />
+        <Quantity text={text} lang={lang} title={text.iceSeries} vehicle={ice} liters={result.ice.litersYear} kwh={result.ice.kwhYear || null} litersPer100={per100(result.ice.litersYear, kmYear)} kwhPer100={result.ice.kwhYear > 0 ? per100(result.ice.kwhYear, kmYear) : null} gramsPerKm={result.ice.gPerKm} rangeKm={result.ice.rangeKm} electricRangeKm={result.ice.electricRangeKm} charge={result.ice.charge240} estimated={result.ice.co2Estimated} catalog={catalog} />
       </div>
       <Charts
         copy={text}
@@ -723,6 +862,58 @@ function BreakevenBlock({
   )
 }
 
+function ConsumptionField({
+  label,
+  ariaLabel,
+  hint,
+  value,
+  official,
+  edited,
+  invalid,
+  invalidText,
+  yours,
+  officialLabel,
+  resetLabel,
+  onChange,
+  onReset,
+}: {
+  label: string
+  ariaLabel: string
+  hint: string
+  value: string
+  official: number | null
+  edited: boolean
+  invalid: boolean
+  invalidText: string
+  yours: string
+  officialLabel: string
+  resetLabel: string
+  onChange: (value: string) => void
+  onReset: () => void
+}) {
+  const parsed = parsePrice(value)
+  const shownOfficial = official == null ? null : Number(priceInput(official))
+  const changed = edited && (shownOfficial == null || parsed == null || Math.abs(parsed - shownOfficial) > 1e-9)
+  return (
+    <label className="grid gap-1.5 text-sm">
+      <span className="flex items-center justify-between gap-2">
+        {label}
+        <Badge variant="secondary">{changed || official == null ? yours : officialLabel}</Badge>
+      </span>
+      <Input aria-label={ariaLabel} inputMode="decimal" autoComplete="off" value={value} onChange={(event) => onChange(event.target.value)} />
+      <span className="flex items-center justify-between gap-2 text-xs leading-5 text-muted-foreground">
+        <span>{hint}</span>
+        {changed && official != null ? (
+          <button type="button" className="shrink-0 underline" onClick={onReset}>
+            {resetLabel}
+          </button>
+        ) : null}
+      </span>
+      {invalid ? <span className="text-sm text-red-700">{invalidText}</span> : null}
+    </label>
+  )
+}
+
 function PurchaseField({
   label,
   ariaLabel,
@@ -754,6 +945,10 @@ function upstreamOn(result: { ice: { upstreamSkippedDiesel: boolean } }) {
   return result.ice.upstreamSkippedDiesel
 }
 
+function per100(total: number, kmYear: number) {
+  return kmYear > 0 ? total / (kmYear / 100) : null
+}
+
 function cycleOf(vehicle: Vehicle) {
   return vehicle.cycle === "WLTP" ? "WLTP" : "EPA"
 }
@@ -765,6 +960,9 @@ function Quantity({
   vehicle,
   liters,
   kwh,
+  litersPer100,
+  kwhPer100,
+  gramsPerKm,
   rangeKm,
   electricRangeKm,
   charge,
@@ -777,6 +975,9 @@ function Quantity({
   vehicle: Vehicle
   liters: number | null
   kwh: number | null
+  litersPer100: number | null
+  kwhPer100: number | null
+  gramsPerKm: number | null
   rangeKm: number | null
   electricRangeKm: number | null
   charge: number | null
@@ -786,16 +987,16 @@ function Quantity({
   const cycle = cycleOf(vehicle)
   const sourceUrl = vehicle.wltp?.sourceUrl ?? catalog.us.url
   const sourceName = vehicle.wltp?.sourceName ?? catalog.us.source
-  const rate =
-    vehicle.cycle === "WLTP"
-      ? [
-          vehicle.wltp?.lPer100km != null ? `${formatNumber(vehicle.wltp.lPer100km, lang, 1)} L/100 km` : null,
-          vehicle.wltp?.kwhPer100km != null ? `${formatNumber(vehicle.wltp.kwhPer100km, lang, 1)} kWh/100 km` : null,
-          vehicle.wltp?.co2GPerKm != null ? `${formatNumber(vehicle.wltp.co2GPerKm, lang, 0)} g/km` : null,
-        ]
-          .filter(Boolean)
-          .join(" · ")
-      : null
+  const litersRate = litersPer100 ?? vehicle.wltp?.lPer100km ?? null
+  const kwhRate = kwhPer100 ?? vehicle.wltp?.kwhPer100km ?? null
+  const co2Rate = gramsPerKm ?? vehicle.wltp?.co2GPerKm ?? null
+  const rate = [
+    litersRate != null && litersRate > 0 ? `${formatNumber(litersRate, lang, 1)} L/100 km` : null,
+    kwhRate != null && (vehicle.side === "ev" || kwhRate > 0) ? `${formatNumber(kwhRate, lang, 1)} kWh/100 km` : null,
+    co2Rate != null ? `${formatNumber(co2Rate, lang, 0)} g/km` : null,
+  ]
+    .filter(Boolean)
+    .join(" · ")
   return (
     <div className="rounded-xl bg-card p-3 ring-1 ring-foreground/10">
       <p className="text-xs uppercase tracking-wide text-muted-foreground">{title}</p>
@@ -877,8 +1078,8 @@ function PriceField({
 
 function Step({ n, title, children }: { n: number; title: string; children: ReactNode }) {
   return (
-    <section className="grid gap-3 rounded-2xl bg-card/70 p-4 ring-1 ring-foreground/10">
-      <h2 className="flex items-center gap-2 font-heading text-xl">
+    <section className="grid gap-3 rounded-2xl border border-border bg-card p-4 shadow-sm">
+      <h2 className="flex items-center gap-2 font-heading text-xl font-semibold tracking-tight">
         <span className="grid size-7 place-items-center rounded-full bg-primary text-sm text-primary-foreground">{n}</span>
         {title}
       </h2>
@@ -889,8 +1090,8 @@ function Step({ n, title, children }: { n: number; title: string; children: Reac
 
 function Panel({ title, children }: { title: string; children: ReactNode }) {
   return (
-    <section className="grid gap-3 rounded-2xl bg-[#ebe4d4] p-4 ring-1 ring-foreground/10">
-      <h2 className="flex items-center gap-2 font-heading text-xl">
+    <section className="grid gap-3 rounded-2xl border border-border bg-card p-4 shadow-sm">
+      <h2 className="flex items-center gap-2 font-heading text-xl font-semibold tracking-tight">
         <span className="grid size-7 place-items-center rounded-full bg-primary text-sm text-primary-foreground">5</span>
         {title}
       </h2>

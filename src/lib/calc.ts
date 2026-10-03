@@ -23,6 +23,10 @@ export interface DriveInput {
   /** Null means half the official utility factor. */
   customElectricShare: number | null
   upstream: boolean
+  /** Null keeps the published rate. A number, including zero, replaces L/100 km or kWh/100 km. */
+  evKwhPer100?: number | null
+  iceLitersPer100?: number | null
+  iceKwhPer100?: number | null
 }
 
 export interface Prices {
@@ -272,8 +276,15 @@ export function compare(
     return { ok: false, missingPrices: [], missingConsumption: [], invalidKm: true }
   }
 
-  const evUse = measureEv(ev, input)
-  const iceUse = measureIce(ice, input)
+  let evUse = measureEv(ev, input)
+  let iceUse = measureIce(ice, input)
+  const evKwh = input.evKwhPer100 ?? null
+  const iceLiters = input.iceLitersPer100 ?? null
+  const iceKwh = input.iceKwhPer100 ?? null
+  if (evKwh != null) evUse = applyConsumption(evUse ?? blankMeasured(input.kmYear), input.kmYear, null, evKwh)
+  if (iceLiters != null || iceKwh != null) {
+    iceUse = applyConsumption(iceUse ?? blankMeasured(input.kmYear), input.kmYear, iceLiters, iceKwh)
+  }
   const missingConsumption: Array<"ev" | "ice"> = []
   if (!evUse) missingConsumption.push("ev")
   if (!iceUse) missingConsumption.push("ice")
@@ -320,13 +331,55 @@ interface Measured {
   electricShare: number | null
   officialUf: number | null
   usePublishedCo2: boolean
+  officialLitersPer100: number
+  litersScaled: boolean
+}
+
+function asMeasured(partial: Omit<Measured, "officialLitersPer100" | "litersScaled">): Measured {
+  return { ...partial, officialLitersPer100: 0, litersScaled: false }
+}
+
+/** Published litres and kWh per 100 km for the current split. Null when the listing has no figure. */
+export function ratesPer100(vehicle: Vehicle, input: DriveInput) {
+  const probe = { ...input, kmYear: 100, evKwhPer100: null, iceLitersPer100: null, iceKwhPer100: null }
+  const measured = vehicle.side === "ev" ? measureEv(vehicle, probe) : measureIce(vehicle, probe)
+  if (!measured) return null
+  return {
+    litersPer100: vehicle.side === "ice" ? measured.litersYear : null,
+    kwhPer100: vehicle.side === "ev" || measured.kwhYear > 0 ? measured.kwhYear : null,
+  }
+}
+
+function applyConsumption(measured: Measured, kmYear: number, litersPer100: number | null, kwhPer100: number | null) {
+  const per100 = kmYear / 100
+  const officialLiters = per100 > 0 ? measured.litersYear / per100 : 0
+  const next = { ...measured, officialLitersPer100: officialLiters, litersScaled: false }
+  if (litersPer100 != null) {
+    next.litersYear = per100 * litersPer100
+    next.gallons = next.litersYear / GAL_TO_L
+    next.litersScaled = Math.abs(litersPer100 - officialLiters) > 0.0001
+  }
+  if (kwhPer100 != null) next.kwhYear = per100 * kwhPer100
+  return next
+}
+
+function blankMeasured(kmYear: number): Measured {
+  return asMeasured({
+    litersYear: 0,
+    kwhYear: 0,
+    gallons: 0,
+    miles: kmYear / MI_TO_KM,
+    electricShare: null,
+    officialUf: null,
+    usePublishedCo2: false,
+  })
 }
 
 function measureEv(vehicle: Vehicle, input: DriveInput): Measured | null {
   if (vehicle.cycle === "WLTP") {
     const per100 = vehicle.wltp?.kwhPer100km
     if (per100 == null || per100 <= 0) return null
-    return {
+    return asMeasured({
       litersYear: 0,
       kwhYear: (input.kmYear / 100) * per100,
       gallons: 0,
@@ -334,12 +387,12 @@ function measureEv(vehicle: Vehicle, input: DriveInput): Measured | null {
       electricShare: null,
       officialUf: null,
       usePublishedCo2: false,
-    }
+    })
   }
   const per100Mi = kwhPer100Miles(vehicle, input.cityShare)
   if (per100Mi == null) return null
   const miles = input.kmYear / MI_TO_KM
-  return {
+  return asMeasured({
     litersYear: 0,
     kwhYear: (miles / 100) * per100Mi,
     gallons: 0,
@@ -347,7 +400,7 @@ function measureEv(vehicle: Vehicle, input: DriveInput): Measured | null {
     electricShare: null,
     officialUf: null,
     usePublishedCo2: false,
-  }
+  })
 }
 
 function measureIce(vehicle: Vehicle, input: DriveInput): Measured | null {
@@ -357,7 +410,7 @@ function measureIce(vehicle: Vehicle, input: DriveInput): Measured | null {
     const mpg = mpgForSplit(vehicle, input.cityShare)
     if (mpg == null) return null
     const gallons = miles / mpg
-    return {
+    return asMeasured({
       litersYear: gallons * GAL_TO_L,
       kwhYear: 0,
       gallons,
@@ -365,7 +418,7 @@ function measureIce(vehicle: Vehicle, input: DriveInput): Measured | null {
       electricShare: null,
       officialUf: null,
       usePublishedCo2: nearOfficialSplit(input.cityShare) && vehicle.co2Gpm != null,
-    }
+    })
   }
 
   const resolved = resolveElectricShare(vehicle, input)
@@ -378,7 +431,7 @@ function measureIce(vehicle: Vehicle, input: DriveInput): Measured | null {
   const gallons =
     (share < 0.999 ? (miles * (1 - share)) / (mpg as number) : 0) +
     ((miles * share) / 100) * (vehicle.cdGalPer100Mi || 0)
-  return {
+  return asMeasured({
     litersYear: gallons * GAL_TO_L,
     kwhYear: ((miles * share) / 100) * (per100Mi || 0),
     gallons,
@@ -389,7 +442,7 @@ function measureIce(vehicle: Vehicle, input: DriveInput): Measured | null {
       input.phevMode === "epa" &&
       nearOfficialSplit(input.cityShare) &&
       vehicle.co2Gpm != null,
-  }
+  })
 }
 
 function measureWltpIce(vehicle: Vehicle, input: DriveInput): Measured | null {
@@ -405,7 +458,7 @@ function measureWltpIce(vehicle: Vehicle, input: DriveInput): Measured | null {
   } else if (wltp.lPer100km == null) {
     return null
   }
-  return {
+  return asMeasured({
     litersYear: liters,
     kwhYear: kwh,
     gallons: liters / GAL_TO_L,
@@ -413,7 +466,7 @@ function measureWltpIce(vehicle: Vehicle, input: DriveInput): Measured | null {
     electricShare: null,
     officialUf: null,
     usePublishedCo2: wltp.co2GPerKm != null,
-  }
+  })
 }
 
 function priceEv(vehicle: Vehicle, measured: Measured, prices: Prices, input: DriveInput): SideFigures {
@@ -472,6 +525,12 @@ function priceIce(vehicle: Vehicle, measured: Measured, prices: Prices, input: D
   } else if (measured.gallons > 0) {
     grams = measured.gallons * (vehicle.fuel === "diesel" ? DIESEL_G_PER_GAL : GAS_G_PER_GAL)
     side.co2FromFactor = true
+  } else if (measured.litersScaled && measured.officialLitersPer100 > 0) {
+    grams = 0
+  }
+  if (measured.litersScaled && measured.officialLitersPer100 > 0 && grams > 0 && !side.co2FromFactor) {
+    const now = measured.litersYear / (input.kmYear / 100)
+    grams *= now / measured.officialLitersPer100
   }
   side.tailpipeTonnes = grams / 1_000_000
   side.co2Estimated = vehicle.cycle === "WLTP" ? false : vehicle.year < 2013

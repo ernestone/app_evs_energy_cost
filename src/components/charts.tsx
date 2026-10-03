@@ -18,8 +18,8 @@ import type { Copy } from "@/lib/i18n"
 import type { Lang } from "@/lib/types"
 import { formatNumber } from "@/lib/format"
 
-const EV = "#0f6e6b"
-const ICE = "#c45c28"
+const EV = "#2563eb"
+const ICE = "#ea580c"
 
 export function BreakevenChart({
   copy,
@@ -42,21 +42,21 @@ export function BreakevenChart({
 }) {
   return (
     <section className="rounded-xl bg-card p-3 ring-1 ring-foreground/10">
-      <h3 className="px-1 font-heading text-lg text-foreground">
+      <h3 className="px-1 font-heading text-lg font-semibold tracking-tight text-foreground">
         {copy.breakevenTitle} <span className="text-sm font-sans text-muted-foreground">({currency})</span>
       </h3>
       <div className="h-48">
         <ResponsiveContainer width="100%" height="100%">
           <LineChart data={rows} margin={{ top: 12, right: 8, left: 0, bottom: 0 }}>
-            <CartesianGrid stroke="#e0d5c0" vertical={false} />
+            <CartesianGrid stroke="#e2e8f0" vertical={false} />
             <XAxis
               dataKey="t"
               type="number"
               domain={[0, "dataMax"]}
-              tick={{ fill: "#5e574c", fontSize: 12 }}
+              tick={{ fill: "#64748b", fontSize: 12 }}
               tickFormatter={(value) => formatNumber(Number(value), lang, 0)}
             />
-            <YAxis tick={{ fill: "#5e574c", fontSize: 12 }} width={56} />
+            <YAxis tick={{ fill: "#64748b", fontSize: 12 }} width={56} />
             <Tooltip
               formatter={(value) => money(Number(value))}
               labelFormatter={(value) => `${formatNumber(Number(value), lang, 1)} ${copy.perYear}`}
@@ -169,9 +169,9 @@ export function Charts({
         <div className="h-56">
           <ResponsiveContainer width="100%" height="100%">
             <LineChart data={projection} margin={{ top: 8, right: 8, left: 0, bottom: 0 }}>
-              <CartesianGrid stroke="#e0d5c0" vertical={false} />
-              <XAxis dataKey="year" tick={{ fill: "#5e574c", fontSize: 12 }} />
-              <YAxis tick={{ fill: "#5e574c", fontSize: 12 }} width={56} />
+              <CartesianGrid stroke="#e2e8f0" vertical={false} />
+              <XAxis dataKey="year" tick={{ fill: "#64748b", fontSize: 12 }} />
+              <YAxis tick={{ fill: "#64748b", fontSize: 12 }} width={56} />
               <Tooltip formatter={(value) => money(Number(value))} />
               <Legend />
               <Line type="monotone" dataKey="ev" name={evSeries} stroke={EV} strokeWidth={2.5} dot={false} />
@@ -199,7 +199,7 @@ function Figure({ label, value, lang }: { label: string; value: number | null; l
 function ChartCard({ title, unit, children }: { title: string; unit: string; children: ReactNode }) {
   return (
     <section className="rounded-xl bg-card p-3 ring-1 ring-foreground/10">
-      <h3 className="px-1 font-heading text-lg text-foreground">
+      <h3 className="px-1 font-heading text-lg font-semibold tracking-tight text-foreground">
         {title} <span className="text-sm font-sans text-muted-foreground">({unit})</span>
       </h3>
       {children}
@@ -222,9 +222,9 @@ function Bars({
     <div className="h-40">
       <ResponsiveContainer width="100%" height="100%">
         <BarChart data={data} margin={{ top: 8, right: 8, left: 0, bottom: 0 }}>
-          <CartesianGrid stroke="#e0d5c0" vertical={false} />
-          <XAxis dataKey="name" tick={{ fill: "#5e574c", fontSize: 12 }} />
-          <YAxis tick={{ fill: "#5e574c", fontSize: 12 }} width={56} />
+          <CartesianGrid stroke="#e2e8f0" vertical={false} />
+          <XAxis dataKey="name" tick={{ fill: "#64748b", fontSize: 12 }} />
+          <YAxis tick={{ fill: "#64748b", fontSize: 12 }} width={56} />
           <Tooltip formatter={(value) => format(Number(value))} />
           <Legend />
           <Bar dataKey="ev" name={evSeries} fill={EV} radius={[4, 4, 0, 0]} />

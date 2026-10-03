@@ -6,6 +6,7 @@ import {
   cumulativeCost,
   DEFAULT_CITY_SHARE,
   electricityBlend,
+  ratesPer100,
   GAL_TO_L,
   kwhPer100Miles,
   L_PER_100KM_NUMERATOR,
@@ -287,6 +288,61 @@ test("WLTP combined ignores the city split and does not invent EPA miles", () =>
   assert.equal(city.ice.co2FromFactor, false)
   assert.equal(city.ice.co2Estimated, false)
   assert.equal(city.ev.rangeKm, 435)
+})
+
+test("an edited consumption per 100 km replaces the published rate and scales CO2", () => {
+  const ev = vehicle({
+    side: "ev",
+    powertrain: "ev",
+    fuel: "electricity",
+    cycle: "WLTP",
+    wltp: {
+      lPer100km: null,
+      co2GPerKm: 0,
+      kwhPer100km: 16,
+      electricRangeKm: 400,
+      chargeSustainingLPer100km: null,
+      sourceUrl: "https://example.test",
+      sourceName: "EEA",
+      license: "CC BY 2.5 DK",
+      licenseUrl: "http://creativecommons.org/licenses/by/2.5/dk/deed.en_GB",
+      figureYear: 2024,
+    },
+  })
+  const ice = vehicle({
+    side: "ice",
+    powertrain: "hev",
+    fuel: "gasoline",
+    cycle: "WLTP",
+    wltp: {
+      lPer100km: 6,
+      co2GPerKm: 140,
+      kwhPer100km: null,
+      electricRangeKm: null,
+      chargeSustainingLPer100km: null,
+      sourceUrl: "https://example.test",
+      sourceName: "EEA",
+      license: "CC BY 2.5 DK",
+      licenseUrl: "http://creativecommons.org/licenses/by/2.5/dk/deed.en_GB",
+      figureYear: 2025,
+    },
+  })
+  const input = drive({ kmYear: 10000 })
+  const official = ratesPer100(ice, input)
+  assert.equal(official?.litersPer100, 6)
+  assert.equal(ratesPer100(ev, input)?.kwhPer100, 16)
+  const edited = compare(
+    ev,
+    ice,
+    prices({ gasolinePerLiter: 2, electricityPerKwh: 0.2, gridGPerKwh: 200 }),
+    { ...input, evKwhPer100: 20, iceLitersPer100: 9 },
+  )
+  assert.equal(edited.ok, true)
+  if (!edited.ok) return
+  assert.equal(edited.ev.kwhYear, 2000)
+  assert.equal(edited.ice.litersYear, 900)
+  assert.equal(edited.ice.costYear, 1800)
+  assert.equal(edited.ice.tailpipeTonnes, (140 * 10000 * 9) / 6 / 1_000_000)
 })
 
 test("electricity blend is a weighted average and rejects a percent total other than 100", () => {

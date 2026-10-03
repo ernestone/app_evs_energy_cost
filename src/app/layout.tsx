@@ -1,26 +1,26 @@
 import type { Metadata } from "next"
-import { Fraunces, Source_Sans_3 } from "next/font/google"
+import { Geist, Geist_Mono } from "next/font/google"
 import "./globals.css"
 
-const source = Source_Sans_3({
-  variable: "--font-source",
+const geist = Geist({
+  variable: "--font-geist",
   subsets: ["latin"],
 })
 
-const fraunces = Fraunces({
-  variable: "--font-fraunces",
+const geistMono = Geist_Mono({
+  variable: "--font-geist-mono",
   subsets: ["latin"],
 })
 
 export const metadata: Metadata = {
-  title: "Paralelo",
+  title: "EV comparator",
   description:
     "Compara la energía y el CO₂ de usar un eléctrico y un coche de combustión, con precios del país y consumo EPA o WLTP.",
 }
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
-    <html lang="es" className={`${source.variable} ${fraunces.variable} h-full antialiased`}>
+    <html lang="es" className={`${geist.variable} ${geistMono.variable} h-full antialiased`}>
       <body className="min-h-full bg-background font-sans text-foreground">{children}</body>
     </html>
   )

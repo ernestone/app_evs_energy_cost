@@ -1,4 +1,4 @@
-# Paralelo
+# EV comparator
 
 Comparador de **uso**: energía y CO₂ de un eléctrico de batería frente a un coche con motor de combustión (gasolina, diésel, híbrido o enchufable), en un país de la UE-27, Estados Unidos o el Reino Unido.
 
