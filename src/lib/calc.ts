@@ -81,6 +81,97 @@ export interface BlockedComparison {
 
 export type Comparison = ReadyComparison | BlockedComparison
 
+export interface PowerShare {
+  percent: number | null
+  pricePerKwh: number | null
+}
+
+export type ElectricityBlend =
+  | { ok: true; pricePerKwh: number; percentSum: number }
+  | { ok: false; reason: "missing" | "sum"; percentSum: number }
+
+/** Weighted average of kWh prices. Percents must add up to 100. The weights are not rescaled. */
+export function electricityBlend(rows: PowerShare[]): ElectricityBlend {
+  let percentSum = 0
+  let priced = 0
+  let complete = true
+  for (const row of rows) {
+    if (row.percent == null || row.pricePerKwh == null) {
+      complete = false
+      if (row.percent != null) percentSum += row.percent
+      continue
+    }
+    percentSum += row.percent
+    priced += (row.percent / 100) * row.pricePerKwh
+  }
+  if (!rows.length || !complete) return { ok: false, reason: "missing", percentSum }
+  if (Math.abs(percentSum - 100) > 0.05) return { ok: false, reason: "sum", percentSum }
+  return { ok: true, pricePerKwh: priced, percentSum }
+}
+
+export type Breakeven =
+  | { status: "already" }
+  | { status: "equal" }
+  | { status: "never" }
+  | { status: "at"; years: number; months: number; exactYears: number }
+
+/**
+ * cost(t) = purchase + annualEnergy * t.
+ * A higher electric energy bill never counts as catching up.
+ * t = 0 compares the purchase prices.
+ */
+export function breakeven(
+  purchaseEv: number,
+  purchaseIce: number,
+  annualEv: number,
+  annualIce: number,
+): Breakeven {
+  const moneyGap = 0.005
+  if (annualEv > annualIce + moneyGap) return { status: "never" }
+  if (Math.abs(annualEv - annualIce) <= moneyGap) {
+    if (purchaseEv < purchaseIce - moneyGap) return { status: "already" }
+    if (purchaseEv > purchaseIce + moneyGap) return { status: "never" }
+    return { status: "equal" }
+  }
+  const exactYears = (purchaseEv - purchaseIce) / (annualIce - annualEv)
+  if (exactYears <= 0.0001) return { status: "already" }
+  let years = Math.floor(exactYears)
+  let months = Math.round((exactYears - years) * 12)
+  if (months === 12) {
+    years += 1
+    months = 0
+  }
+  return { status: "at", years, months, exactYears }
+}
+
+export function cumulativeCost(
+  purchaseEv: number,
+  purchaseIce: number,
+  annualEv: number,
+  annualIce: number,
+  point: Breakeven,
+) {
+  const horizon =
+    point.status === "at" ? Math.max(5, Math.ceil(point.exactYears) + 1) : point.status === "never" ? 10 : 8
+  const rows: { t: number; ev: number; ice: number }[] = []
+  for (let year = 0; year <= horizon; year += 1) {
+    rows.push({ t: year, ev: purchaseEv + annualEv * year, ice: purchaseIce + annualIce * year })
+  }
+  if (point.status === "at" && Math.abs(point.exactYears - Math.round(point.exactYears)) > 0.02) {
+    const t = point.exactYears
+    const cost = purchaseEv + annualEv * t
+    rows.push({ t, ev: cost, ice: cost })
+    rows.sort((a, b) => a.t - b.t)
+  }
+  const mark =
+    point.status === "at"
+      ? { t: point.exactYears, cost: purchaseEv + annualEv * point.exactYears }
+      : point.status === "already"
+        ? { t: 0, cost: purchaseEv }
+        : null
+  return { rows, mark }
+}
+
 function nearOfficialSplit(cityShare: number) {
   return Math.abs(cityShare - DEFAULT_CITY_SHARE) < 0.0005
 }

@@ -8,6 +8,7 @@ import {
   Legend,
   Line,
   LineChart,
+  ReferenceDot,
   ResponsiveContainer,
   Tooltip,
   XAxis,
@@ -19,6 +20,58 @@ import { formatNumber } from "@/lib/format"
 
 const EV = "#0f6e6b"
 const ICE = "#c45c28"
+
+export function BreakevenChart({
+  copy,
+  lang,
+  currency,
+  rows,
+  mark,
+  evSeries,
+  iceSeries,
+  money,
+}: {
+  copy: Copy
+  lang: Lang
+  currency: string
+  rows: { t: number; ev: number; ice: number }[]
+  mark: { t: number; cost: number } | null
+  evSeries: string
+  iceSeries: string
+  money: (value: number) => string
+}) {
+  return (
+    <section className="rounded-xl bg-card p-3 ring-1 ring-foreground/10">
+      <h3 className="px-1 font-heading text-lg text-foreground">
+        {copy.breakevenTitle} <span className="text-sm font-sans text-muted-foreground">({currency})</span>
+      </h3>
+      <div className="h-48">
+        <ResponsiveContainer width="100%" height="100%">
+          <LineChart data={rows} margin={{ top: 12, right: 8, left: 0, bottom: 0 }}>
+            <CartesianGrid stroke="#e0d5c0" vertical={false} />
+            <XAxis
+              dataKey="t"
+              type="number"
+              domain={[0, "dataMax"]}
+              tick={{ fill: "#5e574c", fontSize: 12 }}
+              tickFormatter={(value) => formatNumber(Number(value), lang, 0)}
+            />
+            <YAxis tick={{ fill: "#5e574c", fontSize: 12 }} width={56} />
+            <Tooltip
+              formatter={(value) => money(Number(value))}
+              labelFormatter={(value) => `${formatNumber(Number(value), lang, 1)} ${copy.perYear}`}
+            />
+            <Legend />
+            <Line type="monotone" dataKey="ev" name={evSeries} stroke={EV} strokeWidth={2.5} dot={false} />
+            <Line type="monotone" dataKey="ice" name={iceSeries} stroke={ICE} strokeWidth={2.5} dot={false} />
+            {mark ? <ReferenceDot x={mark.t} y={mark.cost} r={5} fill="#1c1915" stroke="#fff" /> : null}
+          </LineChart>
+        </ResponsiveContainer>
+      </div>
+      <p className="px-1 text-xs leading-5 text-muted-foreground">{copy.breakevenNote}</p>
+    </section>
+  )
+}
 
 export function Charts({
   copy,
@@ -166,7 +219,7 @@ function Bars({
   format: (value: number) => string
 }) {
   return (
-    <div className="h-52">
+    <div className="h-40">
       <ResponsiveContainer width="100%" height="100%">
         <BarChart data={data} margin={{ top: 8, right: 8, left: 0, bottom: 0 }}>
           <CartesianGrid stroke="#e0d5c0" vertical={false} />

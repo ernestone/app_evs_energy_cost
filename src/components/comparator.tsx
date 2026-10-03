@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useMemo, useState, type ReactNode } from "react"
+import { useEffect, useMemo, useRef, useState, type ReactNode } from "react"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -8,9 +8,9 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Slider } from "@/components/ui/slider"
 import { Switch } from "@/components/ui/switch"
-import { Charts } from "@/components/charts"
+import { BreakevenChart, Charts } from "@/components/charts"
 import { VehiclePicker } from "@/components/vehicle-picker"
-import { compare, DEFAULT_CITY_SHARE, DEFAULT_KM_YEAR, resolveElectricShare } from "@/lib/calc"
+import { breakeven, compare, cumulativeCost, DEFAULT_CITY_SHARE, DEFAULT_KM_YEAR, electricityBlend, resolveElectricShare, type ElectricityBlend } from "@/lib/calc"
 import { crossRate, formatDate, formatMoney, formatNumber, parsePrice, priceInput } from "@/lib/format"
 import { copy, type Copy } from "@/lib/i18n"
 import type { Country, CountryCatalogMeta, FxTable, Lang, SnapshotMeta, Vehicle } from "@/lib/types"
@@ -18,6 +18,8 @@ import type { Country, CountryCatalogMeta, FxTable, Lang, SnapshotMeta, Vehicle 
 const DISPLAY = ["EUR", "USD", "GBP", "CZK", "DKK", "HUF", "PLN", "RON", "SEK"]
 const fieldClass =
   "h-9 w-full rounded-lg border border-input bg-card px-2.5 text-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50"
+
+type PowerRow = { id: string; label: string; percent: string; price: string }
 
 export function Comparator({
   countries,
@@ -31,13 +33,17 @@ export function Comparator({
   catalog: CountryCatalogMeta
 }) {
   const [lang, setLang] = useState<Lang>("es")
+  const langRef = useRef(lang)
+  langRef.current = lang
   const text = copy(lang)
   const [display, setDisplay] = useState("EUR")
   const [countryCode, setCountryCode] = useState("")
   const country = countries.find((item) => item.code === countryCode) ?? null
   const [gasoline, setGasoline] = useState("")
   const [diesel, setDiesel] = useState("")
-  const [electricity, setElectricity] = useState("")
+  const [powerRows, setPowerRows] = useState<PowerRow[]>([])
+  const [evPurchase, setEvPurchase] = useState("")
+  const [icePurchase, setIcePurchase] = useState("")
   const [ev, setEv] = useState<Vehicle | null>(null)
   const [ice, setIce] = useState<Vehicle | null>(null)
   const [kmYear, setKmYear] = useState(String(DEFAULT_KM_YEAR))
@@ -54,20 +60,41 @@ export function Comparator({
     if (!country) return
     setGasoline(priceInput(country.gasolinePerLiter))
     setDiesel(priceInput(country.dieselPerLiter))
-    setElectricity(priceInput(country.electricityPerKwh))
+    setPowerRows([
+      {
+        id: "home",
+        label: langRef.current === "es" ? "Casa" : "Home",
+        percent: "100",
+        price: priceInput(country.electricityPerKwh),
+      },
+    ])
+    setEvPurchase("")
+    setIcePurchase("")
     setDisplay(country.currency)
     setEv(null)
     setIce(null)
   }, [country])
 
+  useEffect(() => {
+    setPowerRows((rows) =>
+      rows.map((row) => {
+        if (row.label !== "Casa" && row.label !== "Home") return row
+        return { ...row, label: lang === "es" ? "Casa" : "Home" }
+      }),
+    )
+  }, [lang])
+
   const km = Number(kmYear)
+  const blend = electricityBlend(
+    powerRows.map((row) => ({ percent: parsePrice(row.percent), pricePerKwh: parsePrice(row.price) })),
+  )
   const result = compare(
     ev,
     ice,
     {
       gasolinePerLiter: parsePrice(gasoline),
       dieselPerLiter: parsePrice(diesel),
-      electricityPerKwh: parsePrice(electricity),
+      electricityPerKwh: blend.ok ? blend.pricePerKwh : null,
       gridGPerKwh: country?.grid.gPerKwh ?? null,
     },
     {
@@ -97,14 +124,18 @@ export function Comparator({
     upstream,
   }) : null
 
+  function updatePower(id: string, patch: Partial<Pick<PowerRow, "label" | "percent" | "price">>) {
+    setPowerRows((rows) => rows.map((row) => (row.id === id ? { ...row, ...patch } : row)))
+  }
+
   return (
-    <div className="min-h-full bg-background text-foreground">
-      <header className="border-b border-border/80">
-        <div className="mx-auto flex max-w-6xl flex-col gap-4 px-4 py-5 sm:flex-row sm:items-end sm:justify-between">
-          <div>
-            <p className="font-heading text-3xl tracking-tight">{text.name}</p>
-            <p className="mt-1 max-w-xl text-sm leading-6 text-muted-foreground">{text.tagline}</p>
-            <p className="mt-1 max-w-xl text-sm leading-6">{text.notTco}</p>
+    <div className="bg-background text-foreground lg:flex lg:h-dvh lg:flex-col lg:overflow-hidden">
+      <header className="shrink-0 border-b border-border/80">
+        <div className="mx-auto flex max-w-[92rem] flex-col gap-3 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
+          <div className="min-w-0">
+            <p className="font-heading text-2xl tracking-tight">{text.name}</p>
+            <p className="max-w-2xl text-sm leading-5 text-muted-foreground">{text.tagline}</p>
+            <p className="max-w-2xl text-sm leading-5">{text.notTco}</p>
           </div>
           <div className="flex flex-wrap items-end gap-3">
             <div className="flex rounded-lg bg-card p-0.5 ring-1 ring-foreground/10">
@@ -129,8 +160,9 @@ export function Comparator({
         </div>
       </header>
 
-      <main className="mx-auto grid max-w-6xl gap-6 px-4 py-6 lg:grid-cols-[minmax(0,1fr)_minmax(20rem,0.92fr)] lg:items-start">
-        <div className="grid gap-5">
+      <main className="mx-auto flex w-full max-w-[92rem] flex-col gap-4 px-4 py-4 lg:grid lg:min-h-0 lg:flex-1 lg:grid-cols-[minmax(22rem,0.88fr)_minmax(0,1.12fr)] lg:overflow-hidden lg:py-3">
+        <div className="contents lg:flex lg:min-h-0 lg:flex-col lg:gap-4 lg:overflow-y-auto lg:overscroll-contain lg:pr-1">
+        <div className="order-1 grid content-start gap-4 lg:order-none">
           <Step n={1} title={text.steps.country}>
             <p className="text-sm text-muted-foreground">{text.countryHint}</p>
             <select
@@ -168,16 +200,79 @@ export function Comparator({
                     date={country.diesel.date}
                     lang={lang}
                   />
-                  <PriceField
-                    label={`${text.electricity} (${sourceCurrency} ${text.perKwh})`}
-                    value={electricity}
-                    official={country.electricityPerKwh}
-                    onChange={setElectricity}
-                    onReset={() => setElectricity(priceInput(country.electricityPerKwh))}
-                    text={text}
-                    date={country.electricity.date}
-                    lang={lang}
-                  />
+                </div>
+                <div className="grid gap-2">
+                  <div>
+                    <p className="text-sm font-medium">{text.powerBlend}</p>
+                    <p className="text-sm leading-6 text-muted-foreground">{text.powerBlendHelp}</p>
+                  </div>
+                  {powerRows.map((row) => (
+                    <div key={row.id} className="grid gap-2 sm:grid-cols-[minmax(0,1.2fr)_5rem_minmax(0,1fr)_auto] sm:items-end">
+                      <label className="grid gap-1 text-sm">
+                        {text.powerLabel}
+                        <Input
+                          value={row.label}
+                          aria-label={text.powerLabel}
+                          onChange={(event) => updatePower(row.id, { label: event.target.value })}
+                        />
+                      </label>
+                      <label className="grid gap-1 text-sm">
+                        {text.powerPercent}
+                        <Input
+                          inputMode="decimal"
+                          value={row.percent}
+                          aria-label={text.powerPercent}
+                          onChange={(event) => updatePower(row.id, { percent: event.target.value })}
+                        />
+                      </label>
+                      <label className="grid gap-1 text-sm">
+                        {`${text.electricity} (${sourceCurrency} ${text.perKwh})`}
+                        <Input
+                          inputMode="decimal"
+                          value={row.price}
+                          aria-label={text.electricity}
+                          onChange={(event) => updatePower(row.id, { price: event.target.value })}
+                        />
+                      </label>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        disabled={powerRows.length === 1}
+                        onClick={() => setPowerRows((rows) => rows.filter((item) => item.id !== row.id))}
+                      >
+                        {text.removePower}
+                      </Button>
+                    </div>
+                  ))}
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() =>
+                        setPowerRows((rows) => [...rows, { id: `row-${rows.length}-${Date.now()}`, label: "", percent: "", price: "" }])
+                      }
+                    >
+                      {text.addPower}
+                    </Button>
+                    <p className="text-sm">{text.percentSum(formatNumber(blend.percentSum, lang, 1))}</p>
+                  </div>
+                  {blend.ok ? (
+                    <p className="text-sm">
+                      {formatNumber(blend.pricePerKwh, lang, 4)} {sourceCurrency} {text.perKwh}
+                    </p>
+                  ) : blend.reason === "sum" ? (
+                    <Alert>
+                      <AlertTitle>{text.powerBlend}</AlertTitle>
+                      <AlertDescription>{text.percentMismatch}</AlertDescription>
+                    </Alert>
+                  ) : null}
+                  {country.electricity.date ? (
+                    <p className="text-xs text-muted-foreground">
+                      {text.homePower}: {formatDate(country.electricity.date, lang)}. {country.electricity.note}
+                    </p>
+                  ) : null}
                 </div>
                 <p className="text-sm leading-6">
                   {text.gridLabel}:{" "}
@@ -193,6 +288,15 @@ export function Comparator({
           <Step n={2} title={text.steps.ev}>
             <p className="text-sm text-muted-foreground">{text.catalogNote}</p>
             <VehiclePicker key={`ev-${countryCode}`} side="ev" country={countryCode} copy={text} selected={ev} onSelect={setEv} />
+            <PurchaseField
+              label={`${text.purchase} (${sourceCurrency})`}
+              ariaLabel={`${text.purchase} ${text.evSeries}`}
+              hint={text.purchaseHint}
+              value={evPurchase}
+              invalid={evPurchase.trim() !== "" && parsePrice(evPurchase) == null}
+              invalidText={text.purchaseInvalid}
+              onChange={setEvPurchase}
+            />
           </Step>
 
           <Step n={3} title={text.steps.ice}>
@@ -202,6 +306,15 @@ export function Comparator({
               setPhevMode("epa")
               setCustomShare(null)
             }} />
+            <PurchaseField
+              label={`${text.purchase} (${sourceCurrency})`}
+              ariaLabel={`${text.purchase} ${text.iceSeries}`}
+              hint={text.purchaseHint}
+              value={icePurchase}
+              invalid={icePurchase.trim() !== "" && parsePrice(icePurchase) == null}
+              invalidText={text.purchaseInvalid}
+              onChange={setIcePurchase}
+            />
             {ice?.fuel === "premium" ? <Notice>{text.premiumWarn}</Notice> : null}
             {ice?.powertrain === "ffv" ? <Notice>{text.ffvNote}</Notice> : null}
             {ice?.powertrain === "phev" && ice.cycle !== "WLTP" && shareInfo ? (
@@ -290,26 +403,7 @@ export function Comparator({
           </Step>
         </div>
 
-        <aside className="lg:sticky lg:top-4 lg:max-h-[calc(100vh-2rem)] lg:overflow-y-auto">
-          <Results
-            text={text}
-            lang={lang}
-            result={result}
-            display={display}
-            sourceCurrency={sourceCurrency}
-            rate={rate}
-            fxDate={fx.date}
-            shown={shown}
-            moneyDigits={moneyDigits}
-            ev={ev}
-            ice={ice}
-            country={country}
-            catalog={catalog}
-          />
-        </aside>
-      </main>
-
-      <section className="mx-auto max-w-6xl px-4 pb-12" id="sources">
+        <section className="order-3 pb-8 lg:order-none lg:pb-2" id="sources">
         <Step n={6} title={text.steps.sources}>
           <p className="text-sm leading-6">{text.sourcesIntro}</p>
           <ul className="grid gap-2 text-sm leading-6">
@@ -382,7 +476,30 @@ export function Comparator({
               : `${text.sourcePricesStay} ${sourceCurrency}. 1 ${sourceCurrency} = ${rate == null ? "—" : formatNumber(rate, lang, 4)} ${display}.`}
           </p>
         </Step>
-      </section>
+        </section>
+        </div>
+
+        <aside className="order-2 lg:min-h-0 lg:overflow-y-auto lg:overscroll-contain lg:pl-1">
+          <Results
+            text={text}
+            lang={lang}
+            result={result}
+            blend={blend}
+            evPurchase={evPurchase}
+            icePurchase={icePurchase}
+            display={display}
+            sourceCurrency={sourceCurrency}
+            rate={rate}
+            fxDate={fx.date}
+            shown={shown}
+            moneyDigits={moneyDigits}
+            ev={ev}
+            ice={ice}
+            country={country}
+            catalog={catalog}
+          />
+        </aside>
+      </main>
     </div>
   )
 }
@@ -391,6 +508,9 @@ function Results({
   text,
   lang,
   result,
+  blend,
+  evPurchase,
+  icePurchase,
   display,
   sourceCurrency,
   rate,
@@ -405,6 +525,9 @@ function Results({
   text: Copy
   lang: Lang
   result: ReturnType<typeof compare>
+  blend: ElectricityBlend
+  evPurchase: string
+  icePurchase: string
   display: string
   sourceCurrency: string
   rate: number | null
@@ -426,9 +549,23 @@ function Results({
       </Panel>
     )
   }
+  if (!blend.ok && blend.reason === "sum") {
+    return (
+      <Panel title={text.steps.results}>
+        <Choice text={text} ev={ev} ice={ice} />
+        <Alert>
+          <AlertTitle>{text.powerBlend}</AlertTitle>
+          <AlertDescription>
+            {text.percentSum(formatNumber(blend.percentSum, lang, 1))} {text.percentMismatch}
+          </AlertDescription>
+        </Alert>
+      </Panel>
+    )
+  }
   if (!result.ok) {
     return (
       <Panel title={text.steps.results}>
+        <Choice text={text} ev={ev} ice={ice} />
         {result.invalidKm ? <Alert><AlertDescription>{text.invalidKm}</AlertDescription></Alert> : null}
         {result.missingPrices.length ? (
           <Alert>
@@ -451,8 +588,37 @@ function Results({
   }
 
   const money = (amount: number) => formatMoney(shown(amount), display, lang, moneyDigits(amount))
+  const evPrice = parsePrice(evPurchase)
+  const icePrice = parsePrice(icePurchase)
+  const purchaseInvalid =
+    (evPurchase.trim() !== "" && evPrice == null) || (icePurchase.trim() !== "" && icePrice == null)
+  const purchaseReady = evPrice != null && icePrice != null
   return (
     <Panel title={text.steps.results}>
+      <Choice text={text} ev={ev} ice={ice} />
+      {purchaseInvalid ? (
+        <Alert>
+          <AlertDescription>{text.purchaseInvalid}</AlertDescription>
+        </Alert>
+      ) : purchaseReady ? (
+        <BreakevenBlock
+          text={text}
+          lang={lang}
+          currency={display}
+          evPrice={evPrice}
+          icePrice={icePrice}
+          annualEv={result.ev.costYear}
+          annualIce={result.ice.costYear}
+          shown={shown}
+          evSeries={`${text.evSeries} (${cycleOf(ev)})`}
+          iceSeries={`${text.iceSeries} (${cycleOf(ice)})`}
+        />
+      ) : (
+        <Alert>
+          <AlertTitle>{text.breakevenTitle}</AlertTitle>
+          <AlertDescription>{text.purchaseNeeded}</AlertDescription>
+        </Alert>
+      )}
       <p className="text-sm leading-6">{text.noWinner}</p>
       <p className="text-xs text-muted-foreground">
         {text.fxLine} {formatDate(fxDate, lang)}
@@ -488,6 +654,99 @@ function Results({
         <p className="text-sm text-muted-foreground">{text.upstreamHelp}</p>
       ) : null}
     </Panel>
+  )
+}
+
+function Choice({ text, ev, ice }: { text: Copy; ev: Vehicle; ice: Vehicle }) {
+  return (
+    <div className="grid gap-2 sm:grid-cols-2">
+      <p className="rounded-lg bg-card px-3 py-2 text-sm leading-5 ring-1 ring-foreground/10">
+        <span className="block text-xs uppercase tracking-wide text-muted-foreground">{text.evSeries}</span>
+        <span className="font-medium">{ev.year} {ev.make} {ev.version}</span>
+      </p>
+      <p className="rounded-lg bg-card px-3 py-2 text-sm leading-5 ring-1 ring-foreground/10">
+        <span className="block text-xs uppercase tracking-wide text-muted-foreground">{text.iceSeries}</span>
+        <span className="font-medium">{ice.year} {ice.make} {ice.version}</span>
+      </p>
+    </div>
+  )
+}
+
+function BreakevenBlock({
+  text,
+  lang,
+  currency,
+  evPrice,
+  icePrice,
+  annualEv,
+  annualIce,
+  shown,
+  evSeries,
+  iceSeries,
+}: {
+  text: Copy
+  lang: Lang
+  currency: string
+  evPrice: number
+  icePrice: number
+  annualEv: number
+  annualIce: number
+  shown: (amount: number) => number
+  evSeries: string
+  iceSeries: string
+}) {
+  const point = breakeven(evPrice, icePrice, annualEv, annualIce)
+  const series = cumulativeCost(evPrice, icePrice, annualEv, annualIce, point)
+  const sentence =
+    point.status === "already"
+      ? text.breakevenAlready
+      : point.status === "equal"
+        ? text.breakevenEqual
+        : point.status === "never"
+          ? text.breakevenNever
+          : text.breakevenAt(text.duration(point.years, point.months))
+  const money = (value: number) => formatMoney(value, currency, lang, Math.abs(value) >= 100 ? 0 : 2)
+  return (
+    <div className="grid gap-2">
+      <p className="text-sm font-medium leading-6">{sentence}</p>
+      <BreakevenChart
+        copy={text}
+        lang={lang}
+        currency={currency}
+        evSeries={evSeries}
+        iceSeries={iceSeries}
+        rows={series.rows.map((row) => ({ t: row.t, ev: shown(row.ev), ice: shown(row.ice) }))}
+        mark={series.mark ? { t: series.mark.t, cost: shown(series.mark.cost) } : null}
+        money={money}
+      />
+    </div>
+  )
+}
+
+function PurchaseField({
+  label,
+  ariaLabel,
+  hint,
+  value,
+  invalid,
+  invalidText,
+  onChange,
+}: {
+  label: string
+  ariaLabel: string
+  hint: string
+  value: string
+  invalid: boolean
+  invalidText: string
+  onChange: (value: string) => void
+}) {
+  return (
+    <label className="grid gap-1.5 text-sm">
+      {label}
+      <Input aria-label={ariaLabel} inputMode="decimal" autoComplete="off" value={value} onChange={(event) => onChange(event.target.value)} />
+      <span className="text-xs leading-5 text-muted-foreground">{hint}</span>
+      {invalid ? <span className="text-sm text-amber-950">{invalidText}</span> : null}
+    </label>
   )
 }
 
@@ -619,7 +878,7 @@ function PriceField({
 function Step({ n, title, children }: { n: number; title: string; children: ReactNode }) {
   return (
     <section className="grid gap-3 rounded-2xl bg-card/70 p-4 ring-1 ring-foreground/10">
-      <h2 className="flex items-center gap-2 font-heading text-2xl">
+      <h2 className="flex items-center gap-2 font-heading text-xl">
         <span className="grid size-7 place-items-center rounded-full bg-primary text-sm text-primary-foreground">{n}</span>
         {title}
       </h2>
@@ -631,7 +890,7 @@ function Step({ n, title, children }: { n: number; title: string; children: Reac
 function Panel({ title, children }: { title: string; children: ReactNode }) {
   return (
     <section className="grid gap-3 rounded-2xl bg-[#ebe4d4] p-4 ring-1 ring-foreground/10">
-      <h2 className="flex items-center gap-2 font-heading text-2xl">
+      <h2 className="flex items-center gap-2 font-heading text-xl">
         <span className="grid size-7 place-items-center rounded-full bg-primary text-sm text-primary-foreground">5</span>
         {title}
       </h2>

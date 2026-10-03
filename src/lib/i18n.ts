@@ -9,8 +9,8 @@ export function copy(lang: Lang) {
       ? "Cuánto cuestan la energía y el CO₂ de usar dos coches, en un país."
       : "What the energy and CO₂ of using two cars cost, in one country.",
     notTco: es
-      ? "No es el coste de comprar, asegurar ni mantener el coche."
-      : "This is not the cost of buying, insuring, or maintaining the car.",
+      ? "El equilibrio suma el precio de compra que escribas y la energía. El seguro, el mantenimiento y la depreciación no entran."
+      : "Breakeven adds the purchase price you type to the energy spend. Insurance, maintenance, and depreciation do not.",
     langEs: "Español",
     langEn: "English",
     currencyLabel: es ? "Moneda en pantalla" : "Display currency",
@@ -51,8 +51,9 @@ export function copy(lang: Lang) {
     version: es ? "Versión" : "Version",
     filter: es ? "Filtrar la lista" : "Filter the list",
     noModelMatch: es
-      ? "Ningún modelo de esta marca en el catálogo del país contiene ese texto."
-      : "No model of this make in this country’s catalog contains that text.",
+      ? "Ningún modelo de esta marca contiene ese texto."
+      : "No model of this make contains that text.",
+    noMakeMatch: es ? "Ninguna marca contiene ese texto." : "No make contains that text.",
     needCountry: es ? "Elige antes el país. La lista de modelos sale de ese país." : "Choose the country first. The model list comes from that country.",
     catalogFailed: es ? "Este país no tiene catálogo en la foto. Falló esta fuente:" : "This country has no catalog in the snapshot. This source failed:",
     epaTrimNote: es
@@ -123,6 +124,45 @@ export function copy(lang: Lang) {
       ? "La ficha EPA no trae el MPG o los kWh/100 millas que hacen falta. No se inventa un consumo."
       : "The EPA listing has no MPG or kWh/100 miles for this calculation. No consumption figure is invented.",
     invalidKm: es ? "Los kilómetros al año tienen que ser mayores que cero." : "Kilometres per year have to be greater than zero.",
+    purchase: es ? "Precio de compra" : "Purchase price",
+    purchaseHint: es
+      ? "Vacío a propósito: no hay un precio de compra público con licencia para esta app. Escríbelo en la moneda del país. No incluye seguro, mantenimiento ni depreciación."
+      : "Empty on purpose: there is no public purchase price with a license for this app. Type it in the country’s currency. Insurance, maintenance, and depreciation are not included.",
+    purchaseInvalid: es ? "El precio de compra tiene que ser un número mayor o igual que cero." : "The purchase price has to be a number greater than or equal to zero.",
+    purchaseNeeded: es
+      ? "Escribe los dos precios de compra para ver el equilibrio. Hasta entonces ese gráfico no se calcula."
+      : "Type both purchase prices to see the breakeven. Until then that chart is not calculated.",
+    breakevenTitle: es ? "Equilibrio" : "Breakeven",
+    breakevenNote: es
+      ? "Coste acumulado = precio de compra + gasto de energía al año × años. Precios congelados. Sin seguro, sin mantenimiento y sin depreciación."
+      : "Cumulative cost = purchase price + annual energy spend × years. Prices stay frozen. No insurance, no maintenance, and no depreciation.",
+    breakevenAlready: es
+      ? "En el momento de la compra el eléctrico ya cuesta menos, y su energía no cuesta más al año."
+      : "At the moment of purchase the electric car already costs less, and its energy does not cost more per year.",
+    breakevenEqual: es
+      ? "El precio de compra y el gasto de energía al año son iguales. Empiezan empatados."
+      : "The purchase price and the annual energy spend are the same. They start level.",
+    breakevenNever: es
+      ? "La energía del eléctrico cuesta más al año. Con estos precios no alcanza al de combustión."
+      : "The electric car’s energy costs more per year. At these prices it does not catch up.",
+    breakevenAt: (when: string) =>
+      es
+        ? `El eléctrico iguala el coste acumulado del de combustión a los ${when}.`
+        : `The electric car matches the combustion car’s cumulative cost at ${when}.`,
+    duration: (years: number, months: number) => duration(years, months, es),
+    powerBlend: es ? "Mezcla de electricidad" : "Electricity blend",
+    powerBlendHelp: es
+      ? "Cada fila es una etiqueta, un porcentaje y un precio por kWh. El eléctrico paga la media ponderada. La gasolina y el diésel siguen siendo los del coche de combustión. Un enchufable usa también esta mezcla en sus kWh."
+      : "Each row is a label, a percent, and a price per kWh. The electric car pays the weighted average. Gasoline and diesel stay the combustion car’s fuel prices. A plug-in also uses this blend for its kWh.",
+    powerLabel: es ? "Etiqueta" : "Label",
+    powerPercent: "%",
+    homePower: es ? "Casa" : "Home",
+    addPower: es ? "Añadir un precio de luz" : "Add an electricity price",
+    removePower: es ? "Quitar" : "Remove",
+    percentSum: (sum: string) => (es ? `Los porcentajes suman ${sum} %.` : `The percents add up to ${sum}%.`),
+    percentMismatch: es
+      ? "Tienen que sumar 100. Hasta entonces no se calcula un resultado con una media silenciosa."
+      : "They have to add up to 100. Until then no result is calculated from a silent average.",
     perYear: es ? "al año" : "per year",
     perMonth: es ? "al mes" : "per month",
     per100: es ? "por 100 km" : "per 100 km",
@@ -150,18 +190,18 @@ export function copy(lang: Lang) {
     assumptionsTitle: es ? "Supuestos a la vista" : "Assumptions in view",
     assumptions: es
       ? [
-          "La luz es el promedio doméstico del país, con impuestos. No es la tarifa valle ni el cargador rápido.",
+          "La luz de partida es el promedio doméstico del país, con impuestos. Puedes partirla en varios precios; si los porcentajes no suman 100, no hay resultado. No es, por sí sola, la tarifa valle ni el cargador rápido.",
           "La gasolina y el diésel son precios al consumidor con impuestos, no el surtidor de una esquina.",
           "Estados Unidos lista los coches de fueleconomy.gov. La UE-27 lista el seguimiento de la AEMA. El Reino Unido no copia ninguna de las dos: si su archivo no se pudo abrir, la lista queda vacía.",
-          "Esto no incluye comprar el coche, el seguro, el mantenimiento, el punto de carga ni la fabricación de la batería.",
+          "El precio de compra lo escribe el usuario y solo entra en el equilibrio. No hay un catálogo de precios de compra. El seguro, el mantenimiento, el punto de carga y la fabricación de la batería no entran.",
           "La intensidad de Ember es la de generar electricidad en ese territorio, del año que indica la ficha. No se añade un factor de pérdidas de red.",
           "El gráfico de cinco años congela el precio de hoy. Es una proyección, no un pronóstico.",
         ]
       : [
-          "Electricity is the country’s household average, taxes included. It is not a night rate and not fast charging.",
+          "Electricity starts from the country’s household average, taxes included. You can split it into several prices; if the percents do not add up to 100, there is no result. It is not, by itself, a night rate or fast charging.",
           "Gasoline and diesel are consumer prices with tax, not one station on one corner.",
           "The United States lists fueleconomy.gov cars. The EU-27 lists the EEA monitoring file. The United Kingdom does not copy either list: if its file could not be opened, the list stays empty.",
-          "Buying the car, insurance, maintenance, a home charger, and building the battery are not included.",
+          "The purchase price is typed by the user and only enters the breakeven. There is no purchase-price catalog. Insurance, maintenance, a home charger, and building the battery are not included.",
           "Ember’s intensity is for generating electricity in that territory, for the year on the card. No grid-loss factor is added.",
           "The five-year chart freezes today’s price. It is a projection, not a forecast.",
         ],
@@ -202,6 +242,14 @@ export function copy(lang: Lang) {
       : "The vehicle JSON keeps only the fields this screen uses, from model year 2000. No MSRP.",
     boundary: (boundary: Boundary) => boundaryLabel(boundary, es),
   }
+}
+
+function duration(years: number, months: number, es: boolean) {
+  const yearLabel = es ? (years === 1 ? "1 año" : `${years} años`) : years === 1 ? "1 year" : `${years} years`
+  const monthLabel = es ? (months === 1 ? "1 mes" : `${months} meses`) : months === 1 ? "1 month" : `${months} months`
+  if (years === 0) return monthLabel
+  if (months === 0) return yearLabel
+  return es ? `${yearLabel} y ${monthLabel}` : `${yearLabel} and ${monthLabel}`
 }
 
 function boundaryLabel(boundary: Boundary, es: boolean) {

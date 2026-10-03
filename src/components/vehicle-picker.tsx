@@ -1,8 +1,8 @@
 "use client"
 
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react"
-import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
+import { SearchSelect } from "@/components/search-select"
 import type { Copy } from "@/lib/i18n"
 import type { Side, Vehicle } from "@/lib/types"
 
@@ -57,7 +57,6 @@ export function VehiclePicker({
   const [make, setMake] = useState("")
   const [model, setModel] = useState("")
   const [year, setYear] = useState("")
-  const [query, setQuery] = useState("")
   const [loading, setLoading] = useState(false)
   const [failure, setFailure] = useState<Failure | null>(null)
   const [epaNote, setEpaNote] = useState<EpaResolution | null>(null)
@@ -139,14 +138,10 @@ export function VehiclePicker({
     void chooseTrim(String(trims[0].id))
   }, [trims, selected])
 
-  const needle = query.trim().toLowerCase()
-  const shownMakes = useMemo(
-    () => makes.filter((item) => item.toLowerCase().includes(needle)),
-    [makes, needle],
-  )
-  const shownModels = useMemo(
-    () => models.filter((item) => item.label.toLowerCase().includes(needle) || item.id.toLowerCase().includes(needle)),
-    [models, needle],
+  const makeOptions = useMemo(() => makes.map((item) => ({ value: item, label: item })), [makes])
+  const modelOptions = useMemo(
+    () => models.map((item) => ({ value: item.id, label: modelLabel(item, models, copy) })),
+    [models, copy],
   )
 
   async function chooseTrim(id: string) {
@@ -201,47 +196,34 @@ export function VehiclePicker({
         </p>
       ) : null}
       <div className="grid gap-3 sm:grid-cols-2">
-        <Field label={copy.make}>
-          <select
-            className={fieldClass}
-            value={make}
-            aria-label={copy.make}
-            disabled={!country || Boolean(failure)}
-            onChange={(event) => {
-              setMake(event.target.value)
-              setModel("")
-              setYear("")
-              setYears([])
-              setModels([])
-              setTrims([])
-              setEpaNote(null)
-              onSelect(null)
-            }}
-          >
-            <option value="">{copy.choose}</option>
-            {shownMakes.map((item) => (
-              <option key={item} value={item}>
-                {item}
-              </option>
-            ))}
-          </select>
-        </Field>
-        <Field label={copy.model}>
-          <select
-            className={fieldClass}
-            value={model}
-            aria-label={copy.model}
-            disabled={!make}
-            onChange={(event) => void chooseModel(event.target.value)}
-          >
-            <option value="">{copy.choose}</option>
-            {shownModels.map((item) => (
-              <option key={item.id} value={item.id}>
-                {modelLabel(item, shownModels, copy)}
-              </option>
-            ))}
-          </select>
-        </Field>
+        <SearchSelect
+          label={copy.make}
+          value={make}
+          options={makeOptions}
+          placeholder={copy.choose}
+          empty={copy.noMakeMatch}
+          disabled={!country || Boolean(failure)}
+          onChange={(next) => {
+            setMake(next)
+            setModel("")
+            setYear("")
+            setYears([])
+            setModels([])
+            setTrims([])
+            setEpaNote(null)
+            epaNoteRef.current = null
+            onSelect(null)
+          }}
+        />
+        <SearchSelect
+          label={copy.model}
+          value={model}
+          options={modelOptions}
+          placeholder={copy.choose}
+          empty={copy.noModelMatch}
+          disabled={!make}
+          onChange={(next) => void chooseModel(next)}
+        />
       </div>
       {years.length > 1 || trims.length > 1 ? (
         <div className="grid gap-3 sm:grid-cols-2">
@@ -284,12 +266,6 @@ export function VehiclePicker({
             </Field>
           ) : null}
         </div>
-      ) : null}
-      <Field label={copy.filter}>
-        <Input value={query} onChange={(event) => setQuery(event.target.value)} placeholder={copy.filter} />
-      </Field>
-      {make && needle && models.length > 0 && shownModels.length === 0 ? (
-        <p className="text-sm leading-6 text-muted-foreground">{copy.noModelMatch}</p>
       ) : null}
       {loading ? <p className="text-sm text-muted-foreground">{copy.loading}</p> : null}
       {epaNote ? (

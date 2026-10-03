@@ -2,7 +2,7 @@
 
 Comparador de **uso**: energía y CO₂ de un eléctrico de batería frente a un coche con motor de combustión (gasolina, diésel, híbrido o enchufable), en un país de la UE-27, Estados Unidos o el Reino Unido.
 
-No calcula la compra, el seguro ni el mantenimiento. Los precios salen de una foto estática fechada. La lista de modelos es la del país: EPA en Estados Unidos y el seguimiento de turismos de la AEMA en la UE-27. El consumo es EPA cuando esa marca y ese modelo están en fueleconomy.gov; si no, es el WLTP publicado, etiquetado y sin convertir un ciclo en el otro. El Reino Unido no tiene lista: la descarga de la VCA no está disponible.
+El precio de compra lo escribe quien compara y empieza vacío: no hay un precio público con licencia para precargarlo. La luz se puede partir en varias filas; si no suman 100 %, no hay resultado. El equilibrio es ese precio más la energía, sin seguro, mantenimiento ni depreciación. Los precios de energía salen de una foto estática fechada. La lista de modelos es la del país: EPA en Estados Unidos y el seguimiento de turismos de la AEMA en la UE-27. El consumo es EPA cuando esa marca y ese modelo están en fueleconomy.gov; si no, es el WLTP publicado, etiquetado y sin convertir un ciclo en el otro. El Reino Unido no tiene lista: la descarga de la VCA no está disponible.
 
 La interfaz está en español (por defecto) y en inglés.
 

@@ -1,8 +1,11 @@
 import assert from "node:assert/strict"
 import test from "node:test"
 import {
+  breakeven,
   compare,
+  cumulativeCost,
   DEFAULT_CITY_SHARE,
+  electricityBlend,
   GAL_TO_L,
   kwhPer100Miles,
   L_PER_100KM_NUMERATOR,
@@ -284,6 +287,42 @@ test("WLTP combined ignores the city split and does not invent EPA miles", () =>
   assert.equal(city.ice.co2FromFactor, false)
   assert.equal(city.ice.co2Estimated, false)
   assert.equal(city.ev.rangeKm, 435)
+})
+
+test("electricity blend is a weighted average and rejects a percent total other than 100", () => {
+  const ok = electricityBlend([
+    { percent: 70, pricePerKwh: 0.2 },
+    { percent: 30, pricePerKwh: 0.1 },
+  ])
+  assert.equal(ok.ok, true)
+  if (!ok.ok) return
+  assert.ok(Math.abs(ok.pricePerKwh - 0.17) < 1e-9)
+  const off = electricityBlend([
+    { percent: 70, pricePerKwh: 0.2 },
+    { percent: 40, pricePerKwh: 0.1 },
+  ])
+  assert.equal(off.ok, false)
+  if (off.ok) return
+  assert.equal(off.reason, "sum")
+  assert.equal(off.percentSum, 110)
+  const missing = electricityBlend([{ percent: 100, pricePerKwh: null }])
+  assert.equal(missing.ok, false)
+})
+
+test("breakeven uses purchase plus frozen annual energy and refuses a higher electric bill", () => {
+  const at = breakeven(40000, 30000, 400, 1400)
+  assert.equal(at.status, "at")
+  if (at.status !== "at") return
+  assert.equal(at.years, 10)
+  assert.equal(at.months, 0)
+  assert.equal(at.exactYears, 10)
+  const series = cumulativeCost(40000, 30000, 400, 1400, at)
+  const atTen = series.rows.find((row) => row.t === 10)
+  assert.equal(atTen?.ev, 44000)
+  assert.equal(atTen?.ice, 44000)
+  assert.deepEqual(breakeven(20000, 30000, 400, 1400), { status: "already" })
+  assert.equal(breakeven(40000, 30000, 2000, 1400).status, "never")
+  assert.equal(breakeven(30000, 30000, 500, 500).status, "equal")
 })
 
 test("Qashqai is not the EPA Rogue Sport", () => {
