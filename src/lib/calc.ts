@@ -27,6 +27,13 @@ export interface DriveInput {
   evKwhPer100?: number | null
   iceLitersPer100?: number | null
   iceKwhPer100?: number | null
+  /**
+   * The on-screen boxes are the consumption. Null means the box is empty, not "use the hidden catalog figure".
+   * A selected model writes its figure into the box first.
+   */
+  consumptionFromBoxes?: boolean
+  /** When set, kilometres are split between the fuel rate and the electric rate. They must sum to 100. */
+  motorShares?: { fuel: number; electric: number } | null
 }
 
 export interface Prices {
@@ -81,6 +88,7 @@ export interface BlockedComparison {
   missingPrices: Array<"gasoline" | "diesel" | "electricity">
   missingConsumption: Array<"ev" | "ice">
   invalidKm: boolean
+  shareMismatch?: boolean
 }
 
 export type Comparison = ReadyComparison | BlockedComparison
@@ -176,6 +184,36 @@ export function cumulativeCost(
   return { rows, mark }
 }
 
+/** Spend from year 0 through `horizon`. Purchase is added only when both prices are numbers. */
+export function spendProjection(
+  purchaseEv: number | null,
+  purchaseIce: number | null,
+  annualEv: number,
+  annualIce: number,
+  horizon: number,
+) {
+  const includesPurchase = purchaseEv != null && purchaseIce != null
+  const buyEv = includesPurchase ? purchaseEv : 0
+  const buyIce = includesPurchase ? purchaseIce : 0
+  const point = includesPurchase ? breakeven(purchaseEv, purchaseIce, annualEv, annualIce) : null
+  const rows: { t: number; ev: number; ice: number }[] = []
+  for (let year = 0; year <= horizon; year += 1) {
+    rows.push({ t: year, ev: buyEv + annualEv * year, ice: buyIce + annualIce * year })
+  }
+  if (point?.status === "at" && point.exactYears > 0 && point.exactYears < horizon && Math.abs(point.exactYears - Math.round(point.exactYears)) > 0.02) {
+    const cost = buyEv + annualEv * point.exactYears
+    rows.push({ t: point.exactYears, ev: cost, ice: cost })
+    rows.sort((a, b) => a.t - b.t)
+  }
+  const mark =
+    point?.status === "at" && point.exactYears <= horizon
+      ? { t: point.exactYears, cost: buyEv + annualEv * point.exactYears }
+      : point?.status === "already"
+        ? { t: 0, cost: buyEv }
+        : null
+  return { rows, mark, includesPurchase, point }
+}
+
 function nearOfficialSplit(cityShare: number) {
   return Math.abs(cityShare - DEFAULT_CITY_SHARE) < 0.0005
 }
@@ -269,22 +307,39 @@ export function compare(
   prices: Prices,
   input: DriveInput,
 ): Comparison {
-  if (!ev || !ice || ev.side !== "ev" || ice.side !== "ice") {
+  const fromBoxes = input.consumptionFromBoxes === true
+  if (!fromBoxes && (!ev || !ice || ev.side !== "ev" || ice.side !== "ice")) {
     return { ok: false, missingPrices: [], missingConsumption: [], invalidKm: false }
   }
   if (!(input.kmYear > 0) || input.cityShare < 0 || input.cityShare > 1) {
     return { ok: false, missingPrices: [], missingConsumption: [], invalidKm: true }
   }
+  const shares = input.motorShares ?? null
+  if (shares && Math.abs(shares.fuel + shares.electric - 100) > 0.05) {
+    return { ok: false, missingPrices: [], missingConsumption: [], invalidKm: false, shareMismatch: true }
+  }
 
-  let evUse = measureEv(ev, input)
-  let iceUse = measureIce(ice, input)
+  let evUse = ev ? measureEv(ev, input) : null
+  let iceUse = ice ? measureIce(ice, input) : null
   const evKwh = input.evKwhPer100 ?? null
   const iceLiters = input.iceLitersPer100 ?? null
   const iceKwh = input.iceKwhPer100 ?? null
-  if (evKwh != null) evUse = applyConsumption(evUse ?? blankMeasured(input.kmYear), input.kmYear, null, evKwh)
-  if (iceLiters != null || iceKwh != null) {
-    iceUse = applyConsumption(iceUse ?? blankMeasured(input.kmYear), input.kmYear, iceLiters, iceKwh)
+  if (fromBoxes) {
+    if (evKwh == null) evUse = null
+    else evUse = applyConsumption(evUse ?? blankMeasured(input.kmYear), input.kmYear, null, evKwh)
+    if (iceLiters == null || (shares && iceKwh == null)) iceUse = null
+    else {
+      iceUse = applyConsumption(iceUse ?? blankMeasured(input.kmYear), input.kmYear, iceLiters, shares ? iceKwh : null, shares)
+      if (!shares) iceUse = { ...iceUse, kwhYear: 0, gallons: iceUse.litersYear / GAL_TO_L }
+    }
+  } else {
+    if (evKwh != null) evUse = applyConsumption(evUse ?? blankMeasured(input.kmYear), input.kmYear, null, evKwh)
+    if (iceLiters != null || iceKwh != null) {
+      iceUse = applyConsumption(iceUse ?? blankMeasured(input.kmYear), input.kmYear, iceLiters, iceKwh)
+    }
   }
+  const evVehicle = ev ?? (evUse ? typedVehicle("ev") : null)
+  const iceVehicle = ice ?? (iceUse ? typedVehicle(shares ? "phev" : "gasoline") : null)
   const missingConsumption: Array<"ev" | "ice"> = []
   if (!evUse) missingConsumption.push("ev")
   if (!iceUse) missingConsumption.push("ice")
@@ -294,9 +349,10 @@ export function compare(
   if (iceUse) {
     if (iceUse.kwhYear > 0 && prices.electricityPerKwh == null) missingPrices.add("electricity")
     if (iceUse.litersYear > 0) {
-      missingPrices.add(ice.fuel === "diesel" ? "diesel" : "gasoline")
-      const fuel = ice.fuel === "diesel" ? prices.dieselPerLiter : prices.gasolinePerLiter
-      if (fuel != null) missingPrices.delete(ice.fuel === "diesel" ? "diesel" : "gasoline")
+      const fuelKind = iceVehicle?.fuel === "diesel" ? "diesel" : "gasoline"
+      missingPrices.add(fuelKind)
+      const fuel = fuelKind === "diesel" ? prices.dieselPerLiter : prices.gasolinePerLiter
+      if (fuel != null) missingPrices.delete(fuelKind)
     }
   }
 
@@ -309,8 +365,8 @@ export function compare(
     }
   }
 
-  const readyEv = priceEv(ev, evUse!, prices, input)
-  const readyIce = priceIce(ice, iceUse!, prices, input)
+  const readyEv = priceEv(evVehicle!, evUse!, prices, input)
+  const readyIce = priceIce(iceVehicle!, iceUse!, prices, input)
   return {
     ok: true,
     ev: readyEv,
@@ -350,17 +406,56 @@ export function ratesPer100(vehicle: Vehicle, input: DriveInput) {
   }
 }
 
-function applyConsumption(measured: Measured, kmYear: number, litersPer100: number | null, kwhPer100: number | null) {
+function applyConsumption(
+  measured: Measured,
+  kmYear: number,
+  litersPer100: number | null,
+  kwhPer100: number | null,
+  weights?: { fuel: number; electric: number } | null,
+) {
   const per100 = kmYear / 100
   const officialLiters = per100 > 0 ? measured.litersYear / per100 : 0
   const next = { ...measured, officialLitersPer100: officialLiters, litersScaled: false }
+  const fuelWeight = weights ? weights.fuel / 100 : 1
+  const electricWeight = weights ? weights.electric / 100 : 1
   if (litersPer100 != null) {
-    next.litersYear = per100 * litersPer100
+    next.litersYear = per100 * litersPer100 * fuelWeight
     next.gallons = next.litersYear / GAL_TO_L
-    next.litersScaled = Math.abs(litersPer100 - officialLiters) > 0.0001
+    next.litersScaled = Math.abs(litersPer100 * fuelWeight - officialLiters) > 0.0001
   }
-  if (kwhPer100 != null) next.kwhYear = per100 * kwhPer100
+  if (kwhPer100 != null) next.kwhYear = per100 * kwhPer100 * electricWeight
   return next
+}
+
+function typedVehicle(kind: "ev" | "gasoline" | "phev"): Vehicle {
+  return {
+    id: 0,
+    year: 2024,
+    make: "",
+    model: "",
+    version: "",
+    trany: "",
+    drive: "",
+    vclass: "",
+    side: kind === "ev" ? "ev" : "ice",
+    powertrain: kind === "ev" ? "ev" : kind === "phev" ? "phev" : "gasoline",
+    fuel: kind === "ev" ? "electricity" : "gasoline",
+    cityMpg: null,
+    hwyMpg: null,
+    combMpg: null,
+    cityE: null,
+    hwyE: null,
+    combE: null,
+    cityUf: null,
+    hwyUf: null,
+    combUf: null,
+    cdGalPer100Mi: 0,
+    co2Gpm: null,
+    rangeMi: null,
+    rangeAMi: null,
+    charge240: null,
+    cycle: "EPA",
+  }
 }
 
 function blankMeasured(kmYear: number): Measured {
@@ -549,7 +644,7 @@ function priceIce(vehicle: Vehicle, measured: Measured, prices: Prices, input: D
     return side
   }
 
-  const wantsGrid = vehicle.powertrain === "phev" && measured.kwhYear > 0
+  const wantsGrid = measured.kwhYear > 0
   if (wantsGrid && prices.gridGPerKwh == null) {
     side.co2Tonnes = null
     side.gPerKm = null

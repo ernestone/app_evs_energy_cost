@@ -113,16 +113,16 @@ export function copy(lang: Lang) {
     officialUf: es ? "Factor de uso EPA" : "EPA utility factor",
     emptyTitle: es ? "Aún no hay comparación" : "No comparison yet",
     emptyBody: es
-      ? "Elige un país, un eléctrico de batería y un coche con motor de combustión."
-      : "Choose a country, a battery electric vehicle, and a car with a combustion engine.",
+      ? "Elige un país y escribe el consumo del eléctrico y el del de combustión. El modelo es opcional."
+      : "Choose a country and type the electric and combustion consumption. The model is optional.",
     missingPriceTitle: es ? "Falta un precio" : "A price is missing",
     missingPriceBody: es
       ? "El resultado no se calcula hasta rellenar los precios que usa esta pareja de coches. No se inventa una cifra."
       : "The result stays hidden until the prices this pair of cars needs are filled in. No figure is invented.",
     missingUseTitle: es ? "Falta el consumo" : "Consumption is missing",
     missingUseBody: es
-      ? "La ficha EPA no trae el MPG o los kWh/100 millas que hacen falta. No se inventa un consumo."
-      : "The EPA listing has no MPG or kWh/100 miles for this calculation. No consumption figure is invented.",
+      ? "Escribe los dos consumos, o elige un modelo que los traiga. No se inventa una cifra."
+      : "Type both consumption figures, or choose a model that has them. No figure is invented.",
     invalidKm: es ? "Los kilómetros al año tienen que ser mayores que cero." : "Kilometres per year have to be greater than zero.",
     purchase: es ? "Precio de compra" : "Purchase price",
     purchaseHint: es
@@ -170,21 +170,39 @@ export function copy(lang: Lang) {
     litersPer100: es ? "Litros por 100 km" : "Litres per 100 km",
     kwhPer100: es ? "kWh por 100 km" : "kWh per 100 km",
     consumptionHint: es
-      ? "Empieza en la cifra oficial de este ciclo. Si la cambias, el gasto y el CO₂ usan tu número. El reparto ciudad/carretera ya no lo mueve."
-      : "Starts from this cycle’s official figure. If you change it, the spend and the CO₂ use your number. The city/highway split no longer moves it.",
+      ? "Si eliges un modelo, aquí aparece su cifra. Si no, escríbela. Vacío o no válido, no hay resultado. Sin modelo, los litros se pagan como gasolina."
+      : "If you choose a model, its figure appears here. Otherwise type it. Empty or invalid, there is no result. With no model, litres are priced as gasoline.",
     consumptionInvalid: es
       ? "El consumo tiene que ser un número mayor o igual que cero."
       : "Consumption has to be a number greater than or equal to zero.",
+    noModel: es ? "Sin modelo" : "No model",
+    openModel: es ? "Elegir un modelo" : "Choose a model",
+    hideModel: es ? "Ocultar el modelo" : "Hide the model",
+    modelOptional: es
+      ? "Opcional. Ábrelo solo si quieres un coche del catálogo. El consumo de arriba es el que entra en la cuenta."
+      : "Optional. Open it only if you want a car from the catalog. The consumption above is what the calculation uses.",
+    clearModel: es ? "Quitar modelo" : "Clear model",
+    pluginToggle: es ? "Añadir consumo eléctrico del enchufable" : "Add the plug-in hybrid’s electric consumption",
+    pluginHelp: es
+      ? "Cada cifra es el consumo de ese motor. El porcentaje es la parte de los kilómetros. Tienen que sumar 100. La gasolina o el diésel pagan los litros; la mezcla de luz paga los kWh."
+      : "Each figure is that motor’s consumption. The percent is the share of kilometres. They have to add up to 100. Gasoline or diesel pays for the litres; the electricity blend pays for the kWh.",
+    fuelShare: es ? "Uso del motor de combustión" : "Combustion engine share",
+    electricShare: es ? "Uso del motor eléctrico" : "Electric motor share",
+    horizonLabel: es ? "Horizonte" : "Horizon",
+    yearsWord: es ? "años" : "years",
+    projectionEnergyOnly: es
+      ? "Falta un precio de compra, así que no entra. El gráfico es solo el gasto de energía, con los precios congelados."
+      : "A purchase price is missing, so it is not included. The chart is only the energy spend, with prices frozen.",
     energyTitle: es ? "Energía" : "Energy",
     energyUnit: es ? "kWh equivalentes por 100 km" : "kWh-equivalent per 100 km",
     co2Title: "CO₂",
     co2Year: es ? "al año" : "per year",
     tonnes: "t",
     gPerKm: "g/km",
-    projectionTitle: es ? "Cinco años" : "Five years",
+    projectionTitle: es ? "Gasto en el tiempo" : "Spend over time",
     projectionNote: es
-      ? "Proyección: el gasto de cada año multiplicado por el número de años, con los precios congelados. No es un pronóstico."
-      : "Projection: each year’s energy spend multiplied by the year number, with prices frozen. Not a forecast.",
+      ? "Proyección con los precios congelados. No es un pronóstico. El horizonte de partida es 5 años; puedes alargarlo a 10, 15 o 20."
+      : "Projection with prices frozen. Not a forecast. It starts at 5 years; you can extend it to 10, 15, or 20.",
     noWinner: es
       ? "No hay un ganador único. El dinero y el CO₂ se leen por separado: uno puede bajar y el otro subir."
       : "There is no single winner. Money and CO₂ are read separately: one can fall while the other rises.",

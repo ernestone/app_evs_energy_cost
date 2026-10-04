@@ -10,7 +10,7 @@ import { Slider } from "@/components/ui/slider"
 import { Switch } from "@/components/ui/switch"
 import { BreakevenChart, Charts } from "@/components/charts"
 import { VehiclePicker } from "@/components/vehicle-picker"
-import { breakeven, compare, cumulativeCost, DEFAULT_CITY_SHARE, DEFAULT_KM_YEAR, electricityBlend, ratesPer100, resolveElectricShare, type ElectricityBlend } from "@/lib/calc"
+import { compare, DEFAULT_CITY_SHARE, DEFAULT_KM_YEAR, electricityBlend, ratesPer100, resolveElectricShare, spendProjection, type ElectricityBlend } from "@/lib/calc"
 import { crossRate, formatDate, formatMoney, formatNumber, parsePrice, priceInput } from "@/lib/format"
 import { copy, type Copy } from "@/lib/i18n"
 import type { Country, CountryCatalogMeta, FxTable, Lang, SnapshotMeta, Vehicle } from "@/lib/types"
@@ -21,11 +21,11 @@ const fieldClass =
 
 type PowerRow = { id: string; label: string; percent: string; price: string }
 
-function editedRate(edited: boolean, raw: string) {
-  if (!edited) return { override: null as number | null, invalid: false }
+function boxRate(raw: string) {
+  if (!raw.trim()) return { value: null as number | null, invalid: false }
   const parsed = parsePrice(raw)
-  if (parsed == null) return { override: null, invalid: true }
-  return { override: parsed, invalid: false }
+  if (parsed == null) return { value: null, invalid: true }
+  return { value: parsed, invalid: false }
 }
 
 export function Comparator({
@@ -57,6 +57,12 @@ export function Comparator({
   const [iceLitersEdited, setIceLitersEdited] = useState(false)
   const [iceKwh, setIceKwh] = useState("")
   const [iceKwhEdited, setIceKwhEdited] = useState(false)
+  const [evOpen, setEvOpen] = useState(false)
+  const [iceOpen, setIceOpen] = useState(false)
+  const [plugin, setPlugin] = useState(false)
+  const [fuelShare, setFuelShare] = useState("50")
+  const [elecShare, setElecShare] = useState("50")
+  const [horizon, setHorizon] = useState(5)
   const [ev, setEv] = useState<Vehicle | null>(null)
   const [ice, setIce] = useState<Vehicle | null>(null)
   const [kmYear, setKmYear] = useState(String(DEFAULT_KM_YEAR))
@@ -89,6 +95,11 @@ export function Comparator({
     setIceLitersEdited(false)
     setIceKwh("")
     setIceKwhEdited(false)
+    setEvOpen(false)
+    setIceOpen(false)
+    setPlugin(false)
+    setFuelShare("50")
+    setElecShare("50")
     setDisplay(country.currency)
     setEv(null)
     setIce(null)
@@ -115,8 +126,6 @@ export function Comparator({
   const iceOfficial = ice ? ratesPer100(ice, rateInput) : null
   const iceOfficialLiters = iceOfficial?.litersPer100 ?? null
   const iceOfficialKwh = iceOfficial?.kwhPer100 ?? null
-  const showIceKwh = ice?.powertrain === "phev" || (iceOfficialKwh ?? 0) > 0
-
   useEffect(() => {
     setEvKwhEdited(false)
   }, [ev?.id])
@@ -138,10 +147,15 @@ export function Comparator({
     if (!iceKwhEdited) setIceKwh(priceInput(iceOfficialKwh))
   }, [iceOfficialKwh, iceKwhEdited])
 
-  const evRate = editedRate(evKwhEdited, evKwh)
-  const iceFuelRate = editedRate(iceLitersEdited, iceLiters)
-  const iceElecRate = editedRate(iceKwhEdited, iceKwh)
-  const consumptionInvalid = Boolean(ev && ice && (evRate.invalid || iceFuelRate.invalid || (showIceKwh && iceElecRate.invalid)))
+  const evBox = boxRate(evKwh)
+  const iceFuelBox = boxRate(iceLiters)
+  const iceKwhBox = boxRate(iceKwh)
+  const fuelShareBox = boxRate(fuelShare)
+  const elecShareBox = boxRate(elecShare)
+  const shareSum = (fuelShareBox.value ?? 0) + (elecShareBox.value ?? 0)
+  const sharesInvalid = plugin && (fuelShareBox.invalid || elecShareBox.invalid || fuelShareBox.value == null || elecShareBox.value == null || Math.abs(shareSum - 100) > 0.05)
+  const consumptionInvalid = Boolean(country && (evBox.invalid || iceFuelBox.invalid || (plugin && iceKwhBox.invalid)))
+  const sharesReady = plugin && !sharesInvalid && fuelShareBox.value != null && elecShareBox.value != null
   const blend = electricityBlend(
     powerRows.map((row) => ({ percent: parsePrice(row.percent), pricePerKwh: parsePrice(row.price) })),
   )
@@ -160,9 +174,11 @@ export function Comparator({
       phevMode,
       customElectricShare: customShare,
       upstream,
-      evKwhPer100: evRate.override,
-      iceLitersPer100: iceFuelRate.override,
-      iceKwhPer100: showIceKwh ? iceElecRate.override : null,
+      consumptionFromBoxes: true,
+      evKwhPer100: evBox.value,
+      iceLitersPer100: iceFuelBox.value,
+      iceKwhPer100: plugin ? iceKwhBox.value : null,
+      motorShares: sharesReady ? { fuel: fuelShareBox.value as number, electric: elecShareBox.value as number } : null,
     },
   )
 
@@ -341,33 +357,118 @@ export function Comparator({
                   </strong>{" "}
                   · {country.grid.year}. {country.grid.note}
                 </p>
+                <div className="grid gap-3">
+                  <ConsumptionField
+                    label={`${text.kwhPer100} · ${text.evSeries}`}
+                    ariaLabel={`${text.kwhPer100} ${text.evSeries}`}
+                    hint={text.consumptionHint}
+                    value={evKwh}
+                    official={evOfficialKwh}
+                    edited={evKwhEdited}
+                    invalid={evBox.invalid}
+                    invalidText={text.consumptionInvalid}
+                    yours={text.yours}
+                    officialLabel={text.official}
+                    resetLabel={text.reset}
+                    onChange={(value) => {
+                      setEvKwhEdited(true)
+                      setEvKwh(value)
+                    }}
+                    onReset={() => setEvKwhEdited(false)}
+                  />
+                  <ConsumptionField
+                    label={`${text.litersPer100} · ${text.iceSeries}`}
+                    ariaLabel={`${text.litersPer100} ${text.iceSeries}`}
+                    hint={text.consumptionHint}
+                    value={iceLiters}
+                    official={iceOfficialLiters}
+                    edited={iceLitersEdited}
+                    invalid={iceFuelBox.invalid}
+                    invalidText={text.consumptionInvalid}
+                    yours={text.yours}
+                    officialLabel={text.official}
+                    resetLabel={text.reset}
+                    onChange={(value) => {
+                      setIceLitersEdited(true)
+                      setIceLiters(value)
+                    }}
+                    onReset={() => setIceLitersEdited(false)}
+                  />
+                  <div className="flex items-start gap-3">
+                    <Switch id="plugin" checked={plugin} onCheckedChange={setPlugin} />
+                    <div>
+                      <Label htmlFor="plugin">{text.pluginToggle}</Label>
+                      <p className="text-sm leading-6 text-muted-foreground">{text.pluginHelp}</p>
+                    </div>
+                  </div>
+                  {plugin ? (
+                    <div className="grid gap-3">
+                      <ConsumptionField
+                        label={`${text.kwhPer100} · ${text.iceSeries}`}
+                        ariaLabel={`${text.kwhPer100} ${text.iceSeries}`}
+                        hint={text.pluginHelp}
+                        value={iceKwh}
+                        official={iceOfficialKwh}
+                        edited={iceKwhEdited}
+                        invalid={iceKwhBox.invalid}
+                        invalidText={text.consumptionInvalid}
+                        yours={text.yours}
+                        officialLabel={text.official}
+                        resetLabel={text.reset}
+                        onChange={(value) => {
+                          setIceKwhEdited(true)
+                          setIceKwh(value)
+                        }}
+                        onReset={() => setIceKwhEdited(false)}
+                      />
+                      <div className="grid gap-3 sm:grid-cols-2">
+                        <label className="grid gap-1 text-sm">
+                          {text.fuelShare}
+                          <Input
+                            inputMode="decimal"
+                            aria-label={text.fuelShare}
+                            value={fuelShare}
+                            onChange={(event) => setFuelShare(event.target.value)}
+                          />
+                        </label>
+                        <label className="grid gap-1 text-sm">
+                          {text.electricShare}
+                          <Input
+                            inputMode="decimal"
+                            aria-label={text.electricShare}
+                            value={elecShare}
+                            onChange={(event) => setElecShare(event.target.value)}
+                          />
+                        </label>
+                      </div>
+                      <p className="text-sm">{text.percentSum(formatNumber(shareSum, lang, 1))}</p>
+                      {sharesInvalid ? (
+                        <Alert>
+                          <AlertTitle>{text.pluginToggle}</AlertTitle>
+                          <AlertDescription>{text.percentMismatch}</AlertDescription>
+                        </Alert>
+                      ) : null}
+                    </div>
+                  ) : null}
+                </div>
               </>
             ) : null}
           </Step>
 
           <Step n={2} title={text.steps.ev}>
-            <p className="text-sm text-muted-foreground">{text.catalogNote}</p>
-            <VehiclePicker key={`ev-${countryCode}`} side="ev" country={countryCode} copy={text} selected={ev} onSelect={setEv} />
-            {ev ? (
-              <ConsumptionField
-                label={text.kwhPer100}
-                ariaLabel={`${text.kwhPer100} ${text.evSeries}`}
-                hint={text.consumptionHint}
-                value={evKwh}
-                official={evOfficialKwh}
-                edited={evKwhEdited}
-                invalid={evRate.invalid}
-                invalidText={text.consumptionInvalid}
-                yours={text.yours}
-                officialLabel={text.official}
-                resetLabel={text.reset}
-                onChange={(value) => {
-                  setEvKwhEdited(true)
-                  setEvKwh(value)
-                }}
-                onReset={() => setEvKwhEdited(false)}
-              />
+            <p className="text-sm text-muted-foreground">{text.modelOptional}</p>
+            <Button type="button" variant="outline" size="sm" aria-expanded={evOpen} onClick={() => setEvOpen((open) => !open)}>
+              {evOpen ? text.hideModel : text.openModel}
+            </Button>
+            {ev && !evOpen ? (
+              <p className="text-sm">
+                {ev.year} {ev.make} {ev.version}{" "}
+                <button type="button" className="underline" onClick={() => setEv(null)}>
+                  {text.clearModel}
+                </button>
+              </p>
             ) : null}
+            {evOpen ? <VehiclePicker key={`ev-${countryCode}`} side="ev" country={countryCode} copy={text} selected={ev} onSelect={setEv} /> : null}
             <PurchaseField
               label={`${text.purchase} (${sourceCurrency})`}
               ariaLabel={`${text.purchase} ${text.evSeries}`}
@@ -380,53 +481,24 @@ export function Comparator({
           </Step>
 
           <Step n={3} title={text.steps.ice}>
-            <p className="text-sm text-muted-foreground">{text.iceNote}</p>
-            <VehiclePicker key={`ice-${countryCode}`} side="ice" country={countryCode} copy={text} selected={ice} onSelect={(vehicle) => {
-              setIce(vehicle)
-              setPhevMode("epa")
-              setCustomShare(null)
-            }} />
-            {ice ? (
-              <div className="grid gap-3">
-                <ConsumptionField
-                  label={text.litersPer100}
-                  ariaLabel={`${text.litersPer100} ${text.iceSeries}`}
-                  hint={text.consumptionHint}
-                  value={iceLiters}
-                  official={iceOfficialLiters}
-                  edited={iceLitersEdited}
-                  invalid={iceFuelRate.invalid}
-                  invalidText={text.consumptionInvalid}
-                  yours={text.yours}
-                  officialLabel={text.official}
-                  resetLabel={text.reset}
-                  onChange={(value) => {
-                    setIceLitersEdited(true)
-                    setIceLiters(value)
-                  }}
-                  onReset={() => setIceLitersEdited(false)}
-                />
-                {showIceKwh ? (
-                  <ConsumptionField
-                    label={text.kwhPer100}
-                    ariaLabel={`${text.kwhPer100} ${text.iceSeries}`}
-                    hint={text.consumptionHint}
-                    value={iceKwh}
-                    official={iceOfficialKwh}
-                    edited={iceKwhEdited}
-                    invalid={iceElecRate.invalid}
-                    invalidText={text.consumptionInvalid}
-                    yours={text.yours}
-                    officialLabel={text.official}
-                    resetLabel={text.reset}
-                    onChange={(value) => {
-                      setIceKwhEdited(true)
-                      setIceKwh(value)
-                    }}
-                    onReset={() => setIceKwhEdited(false)}
-                  />
-                ) : null}
-              </div>
+            <p className="text-sm text-muted-foreground">{text.modelOptional}</p>
+            <Button type="button" variant="outline" size="sm" aria-expanded={iceOpen} onClick={() => setIceOpen((open) => !open)}>
+              {iceOpen ? text.hideModel : text.openModel}
+            </Button>
+            {ice && !iceOpen ? (
+              <p className="text-sm">
+                {ice.year} {ice.make} {ice.version}{" "}
+                <button type="button" className="underline" onClick={() => setIce(null)}>
+                  {text.clearModel}
+                </button>
+              </p>
+            ) : null}
+            {iceOpen ? (
+              <VehiclePicker key={`ice-${countryCode}`} side="ice" country={countryCode} copy={text} selected={ice} onSelect={(vehicle) => {
+                setIce(vehicle)
+                setPhevMode("epa")
+                setCustomShare(null)
+              }} />
             ) : null}
             <PurchaseField
               label={`${text.purchase} (${sourceCurrency})`}
@@ -608,6 +680,10 @@ export function Comparator({
             result={result}
             blend={blend}
             consumptionInvalid={consumptionInvalid}
+            sharesInvalid={sharesInvalid}
+            shareSum={shareSum}
+            horizon={horizon}
+            onHorizon={setHorizon}
             evPurchase={evPurchase}
             icePurchase={icePurchase}
             display={display}
@@ -634,6 +710,10 @@ function Results({
   result,
   blend,
   consumptionInvalid,
+  sharesInvalid,
+  shareSum,
+  horizon,
+  onHorizon,
   evPurchase,
   icePurchase,
   display,
@@ -653,6 +733,10 @@ function Results({
   result: ReturnType<typeof compare>
   blend: ElectricityBlend
   consumptionInvalid: boolean
+  sharesInvalid: boolean
+  shareSum: number
+  horizon: number
+  onHorizon: (years: number) => void
   evPurchase: string
   icePurchase: string
   display: string
@@ -667,7 +751,7 @@ function Results({
   kmYear: number
   catalog: CountryCatalogMeta
 }) {
-  if (!country || !ev || !ice) {
+  if (!country) {
     return (
       <Panel title={text.steps.results}>
         <Alert>
@@ -684,6 +768,19 @@ function Results({
         <Alert>
           <AlertTitle>{text.consumption}</AlertTitle>
           <AlertDescription>{text.consumptionInvalid}</AlertDescription>
+        </Alert>
+      </Panel>
+    )
+  }
+  if (sharesInvalid) {
+    return (
+      <Panel title={text.steps.results}>
+        <Choice text={text} ev={ev} ice={ice} />
+        <Alert>
+          <AlertTitle>{text.pluginToggle}</AlertTitle>
+          <AlertDescription>
+            {text.percentSum(formatNumber(shareSum, lang, 1))} {text.percentMismatch}
+          </AlertDescription>
         </Alert>
       </Panel>
     )
@@ -735,51 +832,51 @@ function Results({
   return (
     <Panel title={text.steps.results}>
       <Choice text={text} ev={ev} ice={ice} />
-      {purchaseInvalid ? (
-        <Alert>
-          <AlertDescription>{text.purchaseInvalid}</AlertDescription>
-        </Alert>
-      ) : purchaseReady ? (
-        <BreakevenBlock
-          text={text}
-          lang={lang}
-          currency={display}
-          evPrice={evPrice}
-          icePrice={icePrice}
-          annualEv={result.ev.costYear}
-          annualIce={result.ice.costYear}
-          shown={shown}
-          evSeries={`${text.evSeries} (${cycleOf(ev)})`}
-          iceSeries={`${text.iceSeries} (${cycleOf(ice)})`}
-        />
-      ) : (
-        <Alert>
-          <AlertTitle>{text.breakevenTitle}</AlertTitle>
-          <AlertDescription>{text.purchaseNeeded}</AlertDescription>
-        </Alert>
-      )}
+      {purchaseInvalid ? <Alert><AlertDescription>{text.purchaseInvalid}</AlertDescription></Alert> : null}
+      <SpendBlock
+        text={text}
+        lang={lang}
+        currency={display}
+        horizon={horizon}
+        onHorizon={onHorizon}
+        purchaseReady={purchaseReady}
+        evPrice={evPrice}
+        icePrice={icePrice}
+        annualEv={result.ev.costYear}
+        annualIce={result.ice.costYear}
+        shown={shown}
+        evSeries={text.evSeries}
+        iceSeries={text.iceSeries}
+      />
       <p className="text-sm leading-6">{text.noWinner}</p>
       <p className="text-xs text-muted-foreground">
         {text.fxLine} {formatDate(fxDate, lang)}
         {display === sourceCurrency ? "" : ` · 1 ${sourceCurrency} = ${rate == null ? "—" : formatNumber(rate, lang, 4)} ${display}`}
       </p>
       <div className="grid gap-3 sm:grid-cols-2">
-        <Quantity text={text} lang={lang} title={text.evSeries} vehicle={ev} liters={null} kwh={result.ev.kwhYear} litersPer100={null} kwhPer100={per100(result.ev.kwhYear, kmYear)} gramsPerKm={result.ev.gPerKm} rangeKm={result.ev.rangeKm} electricRangeKm={null} charge={result.ev.charge240} estimated={false} catalog={catalog} />
-        <Quantity text={text} lang={lang} title={text.iceSeries} vehicle={ice} liters={result.ice.litersYear} kwh={result.ice.kwhYear || null} litersPer100={per100(result.ice.litersYear, kmYear)} kwhPer100={result.ice.kwhYear > 0 ? per100(result.ice.kwhYear, kmYear) : null} gramsPerKm={result.ice.gPerKm} rangeKm={result.ice.rangeKm} electricRangeKm={result.ice.electricRangeKm} charge={result.ice.charge240} estimated={result.ice.co2Estimated} catalog={catalog} />
+        {ev ? (
+          <Quantity text={text} lang={lang} title={text.evSeries} vehicle={ev} liters={null} kwh={result.ev.kwhYear} litersPer100={null} kwhPer100={per100(result.ev.kwhYear, kmYear)} gramsPerKm={result.ev.gPerKm} rangeKm={result.ev.rangeKm} electricRangeKm={null} charge={result.ev.charge240} estimated={false} catalog={catalog} />
+        ) : (
+          <PlainUse text={text} lang={lang} title={text.evSeries} rate={per100(result.ev.kwhYear, kmYear)} unit="kWh/100 km" year={result.ev.kwhYear} yearUnit={text.kwhYear} />
+        )}
+        {ice ? (
+          <Quantity text={text} lang={lang} title={text.iceSeries} vehicle={ice} liters={result.ice.litersYear} kwh={result.ice.kwhYear || null} litersPer100={per100(result.ice.litersYear, kmYear)} kwhPer100={result.ice.kwhYear > 0 ? per100(result.ice.kwhYear, kmYear) : null} gramsPerKm={result.ice.gPerKm} rangeKm={result.ice.rangeKm} electricRangeKm={result.ice.electricRangeKm} charge={result.ice.charge240} estimated={result.ice.co2Estimated} catalog={catalog} />
+        ) : (
+          <PlainUse text={text} lang={lang} title={text.iceSeries} rate={per100(result.ice.litersYear, kmYear)} unit="L/100 km" year={result.ice.litersYear} yearUnit={text.litersYear} />
+        )}
       </div>
       <Charts
         copy={text}
         lang={lang}
         currency={display}
-        evSeries={`${text.evSeries} (${cycleOf(ev)})`}
-        iceSeries={`${text.iceSeries} (${cycleOf(ice)})`}
+        evSeries={ev ? `${text.evSeries} (${cycleOf(ev)})` : text.evSeries}
+        iceSeries={ice ? `${text.iceSeries} (${cycleOf(ice)})` : text.iceSeries}
         year={{ ev: shown(result.ev.costYear), ice: shown(result.ice.costYear) }}
         month={{ ev: shown(result.ev.costMonth), ice: shown(result.ice.costMonth) }}
         per100={{ ev: shown(result.ev.costPer100Km), ice: shown(result.ice.costPer100Km) }}
         energy={{ ev: result.ev.kwhEqPer100Km, ice: result.ice.kwhEqPer100Km }}
         co2={{ ev: result.ev.co2Tonnes, ice: result.ice.co2Tonnes }}
         gPerKm={{ ev: result.ev.gPerKm, ice: result.ice.gPerKm }}
-        projection={result.projection.map((row) => ({ year: row.year, ev: shown(row.ev), ice: shown(row.ice) }))}
         evBoundary={text.boundary(result.ev.boundary)}
         iceBoundary={text.boundary(result.ice.boundary)}
       />
@@ -796,25 +893,28 @@ function Results({
   )
 }
 
-function Choice({ text, ev, ice }: { text: Copy; ev: Vehicle; ice: Vehicle }) {
+function Choice({ text, ev, ice }: { text: Copy; ev: Vehicle | null; ice: Vehicle | null }) {
   return (
     <div className="grid gap-2 sm:grid-cols-2">
-      <p className="rounded-lg bg-card px-3 py-2 text-sm leading-5 ring-1 ring-foreground/10">
+      <p className="rounded-lg border border-border bg-card px-3 py-2 text-sm leading-5">
         <span className="block text-xs uppercase tracking-wide text-muted-foreground">{text.evSeries}</span>
-        <span className="font-medium">{ev.year} {ev.make} {ev.version}</span>
+        <span className="font-medium">{ev ? `${ev.year} ${ev.make} ${ev.version}` : text.noModel}</span>
       </p>
-      <p className="rounded-lg bg-card px-3 py-2 text-sm leading-5 ring-1 ring-foreground/10">
+      <p className="rounded-lg border border-border bg-card px-3 py-2 text-sm leading-5">
         <span className="block text-xs uppercase tracking-wide text-muted-foreground">{text.iceSeries}</span>
-        <span className="font-medium">{ice.year} {ice.make} {ice.version}</span>
+        <span className="font-medium">{ice ? `${ice.year} ${ice.make} ${ice.version}` : text.noModel}</span>
       </p>
     </div>
   )
 }
 
-function BreakevenBlock({
+function SpendBlock({
   text,
   lang,
   currency,
+  horizon,
+  onHorizon,
+  purchaseReady,
   evPrice,
   icePrice,
   annualEv,
@@ -826,38 +926,81 @@ function BreakevenBlock({
   text: Copy
   lang: Lang
   currency: string
-  evPrice: number
-  icePrice: number
+  horizon: number
+  onHorizon: (years: number) => void
+  purchaseReady: boolean
+  evPrice: number | null
+  icePrice: number | null
   annualEv: number
   annualIce: number
   shown: (amount: number) => number
   evSeries: string
   iceSeries: string
 }) {
-  const point = breakeven(evPrice, icePrice, annualEv, annualIce)
-  const series = cumulativeCost(evPrice, icePrice, annualEv, annualIce, point)
-  const sentence =
-    point.status === "already"
+  const series = spendProjection(purchaseReady ? evPrice : null, purchaseReady ? icePrice : null, annualEv, annualIce, horizon)
+  const point = series.point
+  const sentence = !series.includesPurchase
+    ? text.projectionEnergyOnly
+    : point?.status === "already"
       ? text.breakevenAlready
-      : point.status === "equal"
+      : point?.status === "equal"
         ? text.breakevenEqual
-        : point.status === "never"
+        : point?.status === "never"
           ? text.breakevenNever
-          : text.breakevenAt(text.duration(point.years, point.months))
+          : point?.status === "at"
+            ? text.breakevenAt(text.duration(point.years, point.months))
+            : text.projectionEnergyOnly
   const money = (value: number) => formatMoney(value, currency, lang, Math.abs(value) >= 100 ? 0 : 2)
   return (
     <div className="grid gap-2">
+      <div className="flex flex-wrap items-center gap-2">
+        <span className="text-sm text-muted-foreground">{text.horizonLabel}</span>
+        {[5, 10, 15, 20].map((years) => (
+          <Button key={years} type="button" size="sm" variant={horizon === years ? "default" : "outline"} aria-pressed={horizon === years} onClick={() => onHorizon(years)}>
+            {years} {text.yearsWord}
+          </Button>
+        ))}
+      </div>
       <p className="text-sm font-medium leading-6">{sentence}</p>
       <BreakevenChart
         copy={text}
         lang={lang}
         currency={currency}
+        title={text.projectionTitle}
+        note={series.includesPurchase ? text.breakevenNote : text.projectionNote}
         evSeries={evSeries}
         iceSeries={iceSeries}
         rows={series.rows.map((row) => ({ t: row.t, ev: shown(row.ev), ice: shown(row.ice) }))}
         mark={series.mark ? { t: series.mark.t, cost: shown(series.mark.cost) } : null}
         money={money}
       />
+    </div>
+  )
+}
+
+function PlainUse({
+  text,
+  lang,
+  title,
+  rate,
+  unit,
+  year,
+  yearUnit,
+}: {
+  text: Copy
+  lang: Lang
+  title: string
+  rate: number | null
+  unit: string
+  year: number
+  yearUnit: string
+}) {
+  return (
+    <div className="rounded-xl border border-border bg-card p-3">
+      <p className="text-xs uppercase tracking-wide text-muted-foreground">{title}</p>
+      <p className="text-sm font-medium">{text.noModel}</p>
+      <p className="mt-1 text-sm">{rate == null ? "—" : `${formatNumber(rate, lang, 1)} ${unit}`}</p>
+      <p className="mt-2 font-heading text-2xl font-semibold">{formatNumber(year, lang, 0)} <span className="font-sans text-sm font-normal">{yearUnit}</span></p>
     </div>
   )
 }

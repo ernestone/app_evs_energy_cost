@@ -16,7 +16,7 @@ import {
 } from "recharts"
 import type { Copy } from "@/lib/i18n"
 import type { Lang } from "@/lib/types"
-import { formatNumber } from "@/lib/format"
+import { formatMoney, formatNumber } from "@/lib/format"
 
 const EV = "#2563eb"
 const ICE = "#ea580c"
@@ -30,6 +30,8 @@ export function BreakevenChart({
   evSeries,
   iceSeries,
   money,
+  title,
+  note,
 }: {
   copy: Copy
   lang: Lang
@@ -39,11 +41,13 @@ export function BreakevenChart({
   evSeries: string
   iceSeries: string
   money: (value: number) => string
+  title?: string
+  note?: string
 }) {
   return (
-    <section className="rounded-xl bg-card p-3 ring-1 ring-foreground/10">
+    <section className="rounded-xl border border-border bg-card p-3 shadow-sm">
       <h3 className="px-1 font-heading text-lg font-semibold tracking-tight text-foreground">
-        {copy.breakevenTitle} <span className="text-sm font-sans text-muted-foreground">({currency})</span>
+        {title ?? copy.breakevenTitle} <span className="text-sm font-sans font-normal text-muted-foreground">({currency})</span>
       </h3>
       <div className="h-48">
         <ResponsiveContainer width="100%" height="100%">
@@ -68,7 +72,7 @@ export function BreakevenChart({
           </LineChart>
         </ResponsiveContainer>
       </div>
-      <p className="px-1 text-xs leading-5 text-muted-foreground">{copy.breakevenNote}</p>
+      <p className="px-1 text-xs leading-5 text-muted-foreground">{note ?? copy.breakevenNote}</p>
     </section>
   )
 }
@@ -83,7 +87,6 @@ export function Charts({
   energy,
   co2,
   gPerKm,
-  projection,
   evBoundary,
   iceBoundary,
   evSeries,
@@ -98,13 +101,12 @@ export function Charts({
   energy: { ev: number; ice: number }
   co2: { ev: number | null; ice: number | null }
   gPerKm: { ev: number | null; ice: number | null }
-  projection: { year: number; ev: number; ice: number }[]
   evBoundary: string
   iceBoundary: string
   evSeries: string
   iceSeries: string
 }) {
-  const money = (value: number) => formatNumber(value, lang, value >= 100 ? 0 : 2)
+  const money = (value: number) => formatMoney(value, currency, lang, Math.abs(value) >= 100 ? 0 : 2)
   return (
     <div className="grid gap-4">
       <div className="grid gap-4 sm:grid-cols-2">
@@ -165,22 +167,6 @@ export function Charts({
           <Figure label={iceSeries} value={gPerKm.ice} lang={lang} />
         </div>
       </div>
-      <ChartCard title={copy.projectionTitle} unit={currency}>
-        <div className="h-56">
-          <ResponsiveContainer width="100%" height="100%">
-            <LineChart data={projection} margin={{ top: 8, right: 8, left: 0, bottom: 0 }}>
-              <CartesianGrid stroke="#e2e8f0" vertical={false} />
-              <XAxis dataKey="year" tick={{ fill: "#64748b", fontSize: 12 }} />
-              <YAxis tick={{ fill: "#64748b", fontSize: 12 }} width={56} />
-              <Tooltip formatter={(value) => money(Number(value))} />
-              <Legend />
-              <Line type="monotone" dataKey="ev" name={evSeries} stroke={EV} strokeWidth={2.5} dot={false} />
-              <Line type="monotone" dataKey="ice" name={iceSeries} stroke={ICE} strokeWidth={2.5} dot={false} />
-            </LineChart>
-          </ResponsiveContainer>
-        </div>
-        <p className="px-1 text-xs leading-5 text-muted-foreground">{copy.projectionNote}</p>
-      </ChartCard>
     </div>
   )
 }

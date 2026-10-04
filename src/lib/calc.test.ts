@@ -4,6 +4,7 @@ import {
   breakeven,
   compare,
   cumulativeCost,
+  spendProjection,
   DEFAULT_CITY_SHARE,
   electricityBlend,
   ratesPer100,
@@ -343,6 +344,58 @@ test("an edited consumption per 100 km replaces the published rate and scales CO
   assert.equal(edited.ice.litersYear, 900)
   assert.equal(edited.ice.costYear, 1800)
   assert.equal(edited.ice.tailpipeTonnes, (140 * 10000 * 9) / 6 / 1_000_000)
+})
+
+test("typed consumption works without a model and plug-in shares weight both motors", () => {
+  const pricesOnly = prices({ gasolinePerLiter: 2, electricityPerKwh: 0.2, gridGPerKwh: 100 })
+  const base = drive({ kmYear: 10000, consumptionFromBoxes: true, evKwhPer100: 15, iceLitersPer100: 6 })
+  const plain = compare(null, null, pricesOnly, base)
+  assert.equal(plain.ok, true)
+  if (!plain.ok) return
+  assert.equal(plain.ev.kwhYear, 1500)
+  assert.equal(plain.ev.costYear, 300)
+  assert.equal(plain.ice.litersYear, 600)
+  assert.equal(plain.ice.kwhYear, 0)
+  assert.equal(plain.ice.costYear, 1200)
+  assert.equal(plain.ice.co2FromFactor, true)
+
+  const empty = compare(null, null, pricesOnly, drive({ kmYear: 10000, consumptionFromBoxes: true }))
+  assert.equal(empty.ok, false)
+  if (empty.ok) return
+  assert.deepEqual(empty.missingConsumption, ["ev", "ice"])
+
+  const plugin = compare(null, null, pricesOnly, {
+    ...base,
+    iceKwhPer100: 18,
+    motorShares: { fuel: 50, electric: 50 },
+  })
+  assert.equal(plugin.ok, true)
+  if (!plugin.ok) return
+  assert.equal(plugin.ice.litersYear, 300)
+  assert.equal(plugin.ice.kwhYear, 900)
+  assert.equal(plugin.ice.costYear, 300 * 2 + 900 * 0.2)
+
+  const badShares = compare(null, null, pricesOnly, {
+    ...base,
+    iceKwhPer100: 18,
+    motorShares: { fuel: 70, electric: 20 },
+  })
+  assert.equal(badShares.ok, false)
+  if (badShares.ok) return
+  assert.equal(badShares.shareMismatch, true)
+
+  const energyOnly = spendProjection(null, null, 400, 1000, 5)
+  assert.equal(energyOnly.includesPurchase, false)
+  assert.equal(energyOnly.mark, null)
+  assert.equal(energyOnly.rows.at(-1)?.ev, 2000)
+  assert.equal(energyOnly.rows.at(-1)?.ice, 5000)
+  const withBuy = spendProjection(40000, 30000, 400, 1400, 10)
+  assert.equal(withBuy.includesPurchase, true)
+  assert.equal(withBuy.point?.status, "at")
+  assert.equal(withBuy.mark?.t, 10)
+  assert.equal(withBuy.rows.at(-1)?.ev, 44000)
+  const shortHorizon = spendProjection(40000, 30000, 400, 1400, 5)
+  assert.equal(shortHorizon.mark, null)
 })
 
 test("electricity blend is a weighted average and rejects a percent total other than 100", () => {
