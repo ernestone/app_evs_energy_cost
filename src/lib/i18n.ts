@@ -16,8 +16,8 @@ export function copy(lang: Lang) {
     currencyLabel: es ? "Moneda en pantalla" : "Display currency",
     steps: {
       country: es ? "País" : "Country",
-      prices: es ? "Precios" : "Prices",
-      use: es ? "Uso" : "Use",
+      prices: es ? "Precios energía" : "Energy prices",
+      use: es ? "Consumos" : "Consumption",
       models: es ? "Selección de modelos" : "Model choice",
       ev: es ? "Eléctrico de batería" : "Battery electric",
       ice: es ? "Combustión, híbrido o enchufable" : "Combustion, hybrid, or plug-in",
@@ -27,7 +27,6 @@ export function copy(lang: Lang) {
     },
     showModels: es ? "Mostrar modelos" : "Show models",
     hideModels: es ? "Ocultar modelos" : "Hide models",
-    styleLabel: es ? "Estilo" : "Style",
     infoAbout: (topic: string) => (es ? `Información sobre ${topic}` : `About ${topic}`),
     countryHint: es
       ? "UE-27, Estados Unidos y Reino Unido. Otro país no entra en esta versión."

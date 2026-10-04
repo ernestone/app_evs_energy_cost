@@ -14,7 +14,7 @@ import { VehiclePicker } from "@/components/vehicle-picker"
 import { compare, DEFAULT_CITY_SHARE, DEFAULT_KM_YEAR, electricityBlend, ratesPer100, resolveElectricShare, spendProjection, type ElectricityBlend } from "@/lib/calc"
 import { crossRate, formatDate, formatMoney, formatNumber, parsePrice, priceInput } from "@/lib/format"
 import { copy, type Copy } from "@/lib/i18n"
-import { lookPalette, originClass, type Look, type Origin } from "@/lib/look"
+import { originClass, type Origin } from "@/lib/look"
 import { readSessionDraft, writeSessionDraft } from "@/lib/session-draft"
 import type { Country, CountryCatalogMeta, FxTable, Lang, SnapshotMeta, Vehicle } from "@/lib/types"
 
@@ -34,7 +34,6 @@ function boxRate(raw: string) {
 export function Comparator({
   countries,
   fx,
-  meta,
   catalog,
 }: {
   countries: Country[]
@@ -61,7 +60,6 @@ export function Comparator({
   const [iceKwh, setIceKwh] = useState("")
   const [iceKwhEdited, setIceKwhEdited] = useState(false)
   const [modelsOpen, setModelsOpen] = useState(false)
-  const [look, setLook] = useState<Look>("clara")
   const [plugin, setPlugin] = useState(false)
   const [fuelShare, setFuelShare] = useState("50")
   const [elecShare, setElecShare] = useState("50")
@@ -330,22 +328,18 @@ export function Comparator({
   }
 
   return (
-    <div data-style={look} className="bg-background text-foreground lg:flex lg:h-dvh lg:flex-col lg:overflow-hidden">
+    <div className="bg-background text-foreground lg:flex lg:h-dvh lg:flex-col lg:overflow-hidden">
       <header className="shrink-0 border-b border-border/80">
         <div className="mx-auto flex max-w-[92rem] flex-col gap-3 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
-          <div className="min-w-0">
+          <div className="flex min-w-0 items-start gap-3">
+            <CarMark />
+            <div className="min-w-0">
             <p className="font-heading text-2xl font-semibold tracking-tight">{text.name}</p>
             <p className="max-w-2xl text-sm leading-5 text-muted-foreground">{text.tagline}</p>
             <p className="max-w-2xl text-sm leading-5">{text.notTco}</p>
+            </div>
           </div>
           <div className="flex flex-wrap items-end gap-3">
-            <div className="flex rounded-lg bg-card p-0.5 ring-1 ring-foreground/10" role="group" aria-label={text.styleLabel}>
-              {(["clara", "tinta", "contraste"] as const).map((name) => (
-                <Button key={name} type="button" size="sm" variant={look === name ? "default" : "ghost"} aria-pressed={look === name} onClick={() => setLook(name)}>
-                  {name === "clara" ? "Clara" : name === "tinta" ? "Tinta" : "Contraste"}
-                </Button>
-              ))}
-            </div>
             <div className="flex rounded-lg bg-card p-0.5 ring-1 ring-foreground/10">
               <Button type="button" size="sm" variant={lang === "es" ? "default" : "ghost"} onClick={() => setLang("es")}>
                 {text.langEs}
@@ -400,7 +394,6 @@ export function Comparator({
                     date={country.gasoline.date}
                     note={country.gasoline.note}
                     lang={lang}
-                    look={look}
                   />
                   <PriceField
                     label={`${text.diesel} (${sourceCurrency} ${text.perLiter})`}
@@ -412,7 +405,6 @@ export function Comparator({
                     date={country.diesel.date}
                     note={country.diesel.note}
                     lang={lang}
-                    look={look}
                   />
                 </div>
                 <div className="grid gap-2">
@@ -430,7 +422,7 @@ export function Comparator({
                         <Input
                           value={row.label}
                           aria-label={text.powerLabel}
-                          className={originClass(look, "typed")}
+                          className={originClass("typed")}
                           onChange={(event) => updatePower(row.id, { label: event.target.value })}
                         />
                       </label>
@@ -440,7 +432,7 @@ export function Comparator({
                           inputMode="decimal"
                           value={row.percent}
                           aria-label={text.powerPercent}
-                          className={originClass(look, "typed")}
+                          className={originClass("typed")}
                           onChange={(event) => updatePower(row.id, { percent: event.target.value })}
                         />
                       </label>
@@ -451,7 +443,7 @@ export function Comparator({
                           value={row.price}
                           aria-label={text.electricity}
                           data-origin={row.price === priceInput(country.electricityPerKwh) ? "official" : "typed"}
-                          className={originClass(look, row.price === priceInput(country.electricityPerKwh) ? "official" : "typed")}
+                          className={originClass(row.price === priceInput(country.electricityPerKwh) ? "official" : "typed")}
                           onChange={(event) => updatePower(row.id, { price: event.target.value })}
                         />
                       </label>
@@ -491,7 +483,7 @@ export function Comparator({
                   ) : null}
                 </div>
                 <p className="flex items-center gap-2 text-sm leading-6">
-                  <span className={`rounded-md px-2 py-1 ${originClass(look, "official")}`}>
+                  <span className={`rounded-md px-2 py-1 ${originClass("official")}`}>
                     {text.gridLabel}:{" "}
                     <strong>
                       {formatNumber(country.grid.gPerKwh, lang, 1)} {text.gridUnit}
@@ -512,7 +504,7 @@ export function Comparator({
                   inputMode="decimal"
                   aria-label={text.kmYear}
                   value={kmYear}
-                  className={originClass(look, "typed")}
+                  className={originClass("typed")}
                   onChange={(event) => setKmYear(event.target.value)}
                 />
               </label>
@@ -522,7 +514,7 @@ export function Comparator({
                   inputMode="decimal"
                   aria-label={text.kmMonth}
                   value={Number.isFinite(km) ? String(Math.round((km / 12) * 10) / 10) : ""}
-                  className={originClass(look, "typed")}
+                  className={originClass("typed")}
                   onChange={(event) => {
                     const month = Number(event.target.value.replace(",", "."))
                     if (Number.isFinite(month)) setKmYear(String(Math.round(month * 12)))
@@ -542,7 +534,6 @@ export function Comparator({
                   invalid={evBox.invalid}
                   invalidText={text.consumptionInvalid}
                   resetLabel={text.reset}
-                  look={look}
                   onChange={(value) => {
                     setEvKwhEdited(true)
                     setEvKwh(value)
@@ -563,7 +554,6 @@ export function Comparator({
                     invalid={iceFuelBox.invalid}
                     invalidText={text.consumptionInvalid}
                     resetLabel={text.reset}
-                    look={look}
                     onChange={(value) => {
                       setIceLitersEdited(true)
                       setIceLiters(value)
@@ -609,7 +599,6 @@ export function Comparator({
                       invalid={iceKwhBox.invalid}
                       invalidText={text.consumptionInvalid}
                       resetLabel={text.reset}
-                      look={look}
                       onChange={(value) => {
                         setIceKwhEdited(true)
                         setIceKwh(value)
@@ -626,7 +615,7 @@ export function Comparator({
                           inputMode="decimal"
                           aria-label={text.fuelShare}
                           value={fuelShare}
-                          className={originClass(look, "typed")}
+                          className={originClass("typed")}
                           onChange={(event) => setFuelShare(event.target.value)}
                         />
                       </label>
@@ -636,7 +625,7 @@ export function Comparator({
                           inputMode="decimal"
                           aria-label={text.electricShare}
                           value={elecShare}
-                          className={originClass(look, "typed")}
+                          className={originClass("typed")}
                           onChange={(event) => setElecShare(event.target.value)}
                         />
                       </label>
@@ -658,7 +647,6 @@ export function Comparator({
                     value={evPurchase}
                     invalid={evPurchase.trim() !== "" && parsePrice(evPurchase) == null}
                     invalidText={text.purchaseInvalid}
-                    look={look}
                     onChange={setEvPurchase}
                   />
                   <PurchaseField
@@ -668,7 +656,6 @@ export function Comparator({
                     value={icePurchase}
                     invalid={icePurchase.trim() !== "" && parsePrice(icePurchase) == null}
                     invalidText={text.purchaseInvalid}
-                    look={look}
                     onChange={setIcePurchase}
                   />
                 </div>
@@ -747,80 +734,6 @@ export function Comparator({
           </Group>
         </div>
 
-        <section className="order-3 pb-8 lg:order-none lg:pb-2" id="sources">
-        <Group title={text.steps.sources}>
-          <p className="text-sm leading-6">{text.sourcesIntro}</p>
-          <ul className="grid gap-2 text-sm leading-6">
-            <li>
-              <a className="underline" href="https://www.fueleconomy.gov/feg/ws/index.shtml">
-                {text.epa}
-              </a>
-              . {meta.epaFileDate}. {text.vehiclesKept} {meta.modelYearMin}–{meta.modelYearMax}, {meta.vehicleCount}.
-            </li>
-            <li>
-              <a className="underline" href={catalog.eu.url}>{text.eea}</a> {catalog.eu.retrieved}. {catalog.eu.license}.{" "}
-              <a className="underline" href={catalog.eu.licenseUrl}>{catalog.eu.license}</a>. {catalog.eu.index}. {catalog.eu.years}.
-            </li>
-            <li>
-              <a className="underline" href={catalog.gb.url}>{text.vcaFailed}</a> {catalog.gb.detail}
-            </li>
-            <li>
-              <a className="underline" href="https://energy.ec.europa.eu/data-and-analysis/weekly-oil-bulletin_en">
-                {text.oil}
-              </a>
-            </li>
-            <li>
-              <a className="underline" href="https://ec.europa.eu/eurostat/databrowser/view/nrg_pc_204/default/table">
-                {text.eurostat}
-              </a>
-            </li>
-            <li>
-              <a className="underline" href="https://www.eia.gov/petroleum/gasdiesel/">{text.eia}</a>
-            </li>
-            <li>
-              <a className="underline" href="https://www.gov.uk/government/statistics/weekly-road-fuel-prices">
-                {text.desnzFuel}
-              </a>
-            </li>
-            <li>
-              <a className="underline" href="https://www.gov.uk/government/statistical-data-sets/annual-domestic-energy-price-statistics">
-                {text.desnzPower}
-              </a>
-            </li>
-            <li>
-              <a className="underline" href="https://ember-energy.org/data/yearly-electricity-data/">{text.ember}</a>{" "}
-              <a className="underline" href="https://ember-energy.org/creative-commons/">CC BY 4.0</a>.
-            </li>
-            <li>
-              <a className="underline" href={meta.upstream.url}>{meta.upstream.citation}</a>
-            </li>
-            <li>
-              <a className="underline" href={meta.phevIcct.url}>{meta.phevIcct.citation}</a> {meta.phevIcct.note}
-            </li>
-          </ul>
-          {country ? (
-            <ul className="grid gap-2 text-sm leading-6 text-muted-foreground">
-              <li>{country.gasoline.note}</li>
-              <li>{country.diesel.note}</li>
-              <li>{country.electricity.note}</li>
-            </ul>
-          ) : null}
-          <div>
-            <h3 className="font-heading text-xl">{text.assumptionsTitle}</h3>
-            <ul className="mt-2 list-disc space-y-1 pl-5 text-sm leading-6">
-              {text.assumptions.map((item) => (
-                <li key={item}>{item}</li>
-              ))}
-            </ul>
-          </div>
-          <p className="text-sm leading-6">
-            {text.fxLine}: {fx.provider}, {formatDate(fx.date, lang)}. {text.fxSource}{" "}
-            {display === sourceCurrency
-              ? text.sameCurrency
-              : `${text.sourcePricesStay} ${sourceCurrency}. 1 ${sourceCurrency} = ${rate == null ? "—" : formatNumber(rate, lang, 4)} ${display}.`}
-          </p>
-        </Group>
-        </section>
         </div>
 
         <aside className="order-2 lg:min-h-0 lg:overflow-y-auto lg:overscroll-contain lg:pl-1">
@@ -847,7 +760,6 @@ export function Comparator({
             country={country}
             kmYear={km}
             catalog={catalog}
-            look={look}
           />
         </aside>
       </main>
@@ -878,7 +790,6 @@ function Results({
   country,
   kmYear,
   catalog,
-  look,
 }: {
   text: Copy
   lang: Lang
@@ -902,9 +813,7 @@ function Results({
   country: Country | null
   kmYear: number
   catalog: CountryCatalogMeta
-  look: Look
 }) {
-  const palette = lookPalette(look)
   if (!country) {
     return (
       <Panel title={text.steps.results}>
@@ -998,7 +907,6 @@ function Results({
         monthEv={result.ev.costMonth}
         monthIce={result.ice.costMonth}
         shown={shown}
-        savingsColor={palette.savings}
       />
       <Choice text={text} ev={ev} ice={ice} />
       {purchaseInvalid ? <Alert><AlertDescription>{text.purchaseInvalid}</AlertDescription></Alert> : null}
@@ -1016,8 +924,6 @@ function Results({
         shown={shown}
         evSeries={text.evSeries}
         iceSeries={text.iceSeries}
-        evColor={palette.ev}
-        iceColor={palette.ice}
       />
       <p className="text-sm leading-6">{text.noWinner}</p>
       <p className="text-xs text-muted-foreground">
@@ -1050,8 +956,6 @@ function Results({
         gPerKm={{ ev: result.ev.gPerKm, ice: result.ice.gPerKm }}
         evBoundary={text.boundary(result.ev.boundary)}
         iceBoundary={text.boundary(result.ice.boundary)}
-        evColor={palette.ev}
-        iceColor={palette.ice}
       />
       <p className="text-sm">
         {text.evSeries} {money(result.ev.costYear)} {text.perYear} · {money(result.ev.costMonth)} {text.perMonth}
@@ -1097,7 +1001,6 @@ function SavingsBoxes({
   monthEv,
   monthIce,
   shown,
-  savingsColor,
 }: {
   text: Copy
   lang: Lang
@@ -1111,7 +1014,6 @@ function SavingsBoxes({
   monthEv: number
   monthIce: number
   shown: (amount: number) => number
-  savingsColor: string
 }) {
   const series = spendProjection(purchaseReady ? evPrice : null, purchaseReady ? icePrice : null, annualEv, annualIce, horizon)
   const atHorizon = series.rows.find((row) => row.t === horizon) ?? series.rows[series.rows.length - 1]
@@ -1140,7 +1042,7 @@ function SavingsBoxes({
                   </InfoTip>
                 ) : null}
               </p>
-              <p data-figure className="mt-2 font-heading text-4xl font-semibold tracking-tight" style={{ color: savingsColor }}>
+              <p data-figure className="mt-2 font-heading text-4xl font-semibold tracking-tight text-foreground">
                 {money(figure.amount)}
               </p>
             </article>
@@ -1200,8 +1102,6 @@ function SpendBlock({
   shown,
   evSeries,
   iceSeries,
-  evColor,
-  iceColor,
 }: {
   text: Copy
   lang: Lang
@@ -1216,8 +1116,6 @@ function SpendBlock({
   shown: (amount: number) => number
   evSeries: string
   iceSeries: string
-  evColor: string
-  iceColor: string
 }) {
   const series = spendProjection(purchaseReady ? evPrice : null, purchaseReady ? icePrice : null, annualEv, annualIce, horizon)
   const point = series.point
@@ -1255,8 +1153,6 @@ function SpendBlock({
         rows={series.rows.map((row) => ({ t: row.t, ev: shown(row.ev), ice: shown(row.ice) }))}
         mark={series.mark ? { t: series.mark.t, cost: shown(series.mark.cost) } : null}
         money={money}
-        evColor={evColor}
-        iceColor={iceColor}
       />
     </div>
   )
@@ -1299,7 +1195,6 @@ function ConsumptionField({
   invalid,
   invalidText,
   resetLabel,
-  look,
   onChange,
   onReset,
 }: {
@@ -1312,7 +1207,6 @@ function ConsumptionField({
   invalid: boolean
   invalidText: string
   resetLabel: string
-  look: Look
   onChange: (value: string) => void
   onReset: () => void
 }) {
@@ -1329,7 +1223,7 @@ function ConsumptionField({
         autoComplete="off"
         value={value}
         data-origin={origin}
-        className={originClass(look, origin)}
+        className={originClass(origin)}
         onChange={(event) => onChange(event.target.value)}
       />
       {edited && official != null ? (
@@ -1349,7 +1243,6 @@ function PurchaseField({
   value,
   invalid,
   invalidText,
-  look,
   onChange,
 }: {
   label: string
@@ -1358,7 +1251,6 @@ function PurchaseField({
   value: string
   invalid: boolean
   invalidText: string
-  look: Look
   onChange: (value: string) => void
 }) {
   return (
@@ -1373,7 +1265,7 @@ function PurchaseField({
         autoComplete="off"
         value={value}
         data-origin="typed"
-        className={originClass(look, "typed")}
+        className={originClass("typed")}
         onChange={(event) => onChange(event.target.value)}
       />
       {invalid ? <span className="text-sm text-amber-950">{invalidText}</span> : null}
@@ -1485,7 +1377,6 @@ function PriceField({
   date,
   note,
   lang,
-  look,
 }: {
   label: string
   value: string
@@ -1496,7 +1387,6 @@ function PriceField({
   date: string | null
   note: string
   lang: Lang
-  look: Look
 }) {
   const origin = priceOrigin(value, official)
   const source = [date ? formatDate(date, lang) : text.missingOfficial, note].filter(Boolean).join(". ")
@@ -1510,7 +1400,7 @@ function PriceField({
         value={value}
         inputMode="decimal"
         data-origin={origin}
-        className={originClass(look, origin)}
+        className={originClass(origin)}
         onChange={(event) => onChange(event.target.value)}
         placeholder={official == null ? text.missingOfficial : undefined}
       />
@@ -1520,6 +1410,21 @@ function PriceField({
         </button>
       ) : null}
     </label>
+  )
+}
+
+function CarMark() {
+  return (
+    <svg viewBox="0 0 32 32" aria-hidden="true" className="mt-0.5 size-9 shrink-0">
+      <rect width="32" height="32" rx="8" fill="#15803d" />
+      <path
+        fill="#f7fee7"
+        d="M7.2 18.2h2.1l1.7-3.1a2 2 0 0 1 1.7-.9h6.6a2 2 0 0 1 1.8 1.1l1.3 2.9h2.4a1.6 1.6 0 0 1 1.6 1.6v2.2a1.2 1.2 0 0 1-1.2 1.2h-.6a2.4 2.4 0 0 1-4.6 0h-7.2a2.4 2.4 0 0 1-4.6 0h-.8a1.2 1.2 0 0 1-1.2-1.2v-2.6a1.2 1.2 0 0 1 1.2-1.2Z"
+      />
+      <circle cx="11.2" cy="23.2" r="1.7" fill="#14532d" />
+      <circle cx="21.4" cy="23.2" r="1.7" fill="#14532d" />
+      <path fill="#eab308" d="M16.1 13.2h2l-1.5 2.6h1.8l-3.1 4.2.6-2.7h-1.7l1.9-4.1Z" />
+    </svg>
   )
 }
 
