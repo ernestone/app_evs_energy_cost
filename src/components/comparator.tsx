@@ -1,6 +1,7 @@
 "use client"
 
-import { useEffect, useMemo, useRef, useState, type ReactNode } from "react"
+import { useEffect, useId, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from "react"
+import { createPortal } from "react-dom"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -15,7 +16,6 @@ import { compare, DEFAULT_CITY_SHARE, DEFAULT_KM_YEAR, electricityBlend, ratesPe
 import { crossRate, formatDate, formatMoney, formatNumber, parsePrice, priceInput, relocalizeInput, upgradeLegacyInput } from "@/lib/format"
 import { copy, type Copy } from "@/lib/i18n"
 import { originClass, type Origin } from "@/lib/look"
-import { cn } from "cn"
 import { languageFromList } from "@/lib/locale"
 import { readSessionDraft, writeSessionDraft } from "@/lib/session-draft"
 import type { Country, CountryCatalogMeta, FxTable, Lang, SnapshotMeta, Vehicle } from "@/lib/types"
@@ -503,16 +503,13 @@ export function Comparator({
                           onChange={(event) => updatePower(row.id, { label: event.target.value })}
                         />
                       </label>
-                      <label className="grid gap-1 text-sm">
-                        {text.powerPercent}
-                        <Input
-                          inputMode="decimal"
-                          value={row.percent}
-                          aria-label={text.powerPercent}
-                          className={originClass("typed")}
-                          onChange={(event) => updatePower(row.id, { percent: event.target.value })}
-                        />
-                      </label>
+                      <PercentInput
+                        label={text.powerPercent}
+                        value={row.percent}
+                        warn={Math.abs(blend.percentSum - 100) > 0.05}
+                        warning={text.percentWarn}
+                        onChange={(value) => updatePower(row.id, { percent: value })}
+                      />
                       <label className="grid gap-1 text-sm">
                         {`${text.electricity} (${sourceCurrency} ${text.perKwh})`}
                         <Input
@@ -535,24 +532,6 @@ export function Comparator({
                       </Button>
                     </div>
                   ))}
-                  <div className="grid gap-2 sm:grid-cols-[minmax(0,1.2fr)_5rem_minmax(0,1fr)_auto] sm:items-end">
-                    <Input
-                      readOnly
-                      tabIndex={-1}
-                      value={formatNumber(blend.percentSum, lang, 1)}
-                      aria-label={text.percentTotal}
-                      data-percent-total
-                      aria-invalid={Math.abs(blend.percentSum - 100) > 0.05 ? true : undefined}
-                      className={cn(
-                        "sm:col-start-2",
-                        originClass("typed"),
-                        Math.abs(blend.percentSum - 100) > 0.05 && "border-red-600 text-red-700",
-                      )}
-                    />
-                    <Button type="button" tabIndex={-1} aria-hidden variant="ghost" size="sm" className="invisible hidden sm:col-start-4 sm:inline-flex">
-                      {text.removePower}
-                    </Button>
-                  </div>
                   <div>
                     <Button
                       type="button"
@@ -1647,6 +1626,85 @@ function CarMark() {
       <circle cx="21.4" cy="23.2" r="1.7" fill="#14532d" />
       <path fill="#eab308" d="M16.1 13.2h2l-1.5 2.6h1.8l-3.1 4.2.6-2.7h-1.7l1.9-4.1Z" />
     </svg>
+  )
+}
+
+function PercentInput({
+  label,
+  value,
+  warn,
+  warning,
+  onChange,
+}: {
+  label: string
+  value: string
+  warn: boolean
+  warning: string
+  onChange: (value: string) => void
+}) {
+  const [hover, setHover] = useState(false)
+  const [focus, setFocus] = useState(false)
+  const open = warn && (hover || focus)
+  const root = useRef<HTMLLabelElement>(null)
+  const panel = useRef<HTMLDivElement>(null)
+  const [box, setBox] = useState<{ top: number; left: number } | null>(null)
+  const tipId = useId()
+
+  useLayoutEffect(() => {
+    if (!open) return
+    function place() {
+      const input = root.current?.querySelector("input")
+      const tip = panel.current
+      if (!input || !tip) return
+      const rect = input.getBoundingClientRect()
+      const margin = 8
+      const width = tip.offsetWidth
+      const height = tip.offsetHeight
+      let left = rect.left
+      if (left + width > window.innerWidth - margin) left = Math.max(margin, window.innerWidth - margin - width)
+      let top = rect.bottom + 4
+      if (top + height > window.innerHeight - margin) top = Math.max(margin, rect.top - height - 4)
+      setBox({ top, left })
+    }
+    place()
+    window.addEventListener("resize", place)
+    document.addEventListener("scroll", place, true)
+    return () => {
+      window.removeEventListener("resize", place)
+      document.removeEventListener("scroll", place, true)
+    }
+  }, [open])
+
+  return (
+    <label ref={root} className="grid gap-1 text-sm" onMouseEnter={() => setHover(true)} onMouseLeave={() => setHover(false)}>
+      {label}
+      <Input
+        inputMode="decimal"
+        value={value}
+        aria-label={label}
+        aria-invalid={warn || undefined}
+        aria-describedby={open ? tipId : undefined}
+        className={warn ? "border-red-600 bg-red-100 text-red-950" : originClass("typed")}
+        onFocus={() => setFocus(true)}
+        onBlur={() => setFocus(false)}
+        onChange={(event) => onChange(event.target.value)}
+      />
+      {open
+        ? createPortal(
+            <div
+              ref={panel}
+              id={tipId}
+              role="tooltip"
+              data-percent-warn
+              style={{ position: "fixed", top: box?.top ?? -9999, left: box?.left ?? 0, zIndex: 80 }}
+              className="pointer-events-none w-max max-w-56 rounded-md border border-red-200 bg-white px-2.5 py-1.5 text-sm leading-5 text-red-800 shadow-md"
+            >
+              {warning}
+            </div>,
+            document.body,
+          )
+        : null}
+    </label>
   )
 }
 
