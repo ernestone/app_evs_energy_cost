@@ -339,35 +339,8 @@ export function Comparator({
             <CarMark />
             <div className="min-w-0">
             <p className="font-heading text-2xl font-semibold tracking-tight">{text.name}</p>
-            <p className="max-w-2xl text-sm leading-5 text-muted-foreground">{text.tagline}</p>
-            </div>
-          </div>
-          <div className="flex flex-wrap items-end gap-3">
-            <div className="flex rounded-lg bg-card p-0.5 ring-1 ring-foreground/10">
-              <Button type="button" size="sm" variant={lang === "es" ? "default" : "ghost"} onClick={() => setLang("es")}>
-                {text.langEs}
-              </Button>
-              <Button type="button" size="sm" variant={lang === "en" ? "default" : "ghost"} onClick={() => setLang("en")}>
-                {text.langEn}
-              </Button>
-            </div>
-            <div className="flex items-end gap-2">
-              <label className="grid gap-1 text-xs text-muted-foreground">
-                {text.currencyLabel}
-                <select className={fieldClass} value={display} aria-label={text.currencyLabel} onChange={(event) => setDisplay(event.target.value)}>
-                  {[...new Set([sourceCurrency, ...DISPLAY])].map((code) => (
-                    <option key={code} value={code}>
-                      {code}
-                    </option>
-                  ))}
-                </select>
-              </label>
-              <InfoTip label={text.infoAbout(text.fxLine)}>
-                {formatDate(fx.date, lang)}. {text.fxSource}
-                {display === sourceCurrency
-                  ? ` ${text.sameCurrency}`
-                  : ` 1 ${sourceCurrency} = ${rate == null ? "—" : formatNumber(rate, lang, 4)} ${display}.`}
-              </InfoTip>
+            <div className="flex min-w-0 items-center gap-2">
+              <p className="max-w-2xl text-sm leading-5 text-muted-foreground">{text.tagline}</p>
               <InfoTip label={text.infoAbout(text.steps.sources)} panelClassName="w-96 max-h-[min(32rem,calc(100dvh-6rem))] overflow-y-auto">
                 <SourcesNote
                   text={text}
@@ -380,6 +353,32 @@ export function Comparator({
                   sourceCurrency={sourceCurrency}
                   rate={rate}
                 />
+              </InfoTip>
+            </div>
+            </div>
+          </div>
+          <div className="flex flex-wrap items-end gap-3">
+            <div className="flex rounded-lg bg-card p-0.5 ring-1 ring-foreground/10">
+              <Button type="button" size="sm" variant={lang === "es" ? "default" : "ghost"} onClick={() => setLang("es")}>
+                {text.langEs}
+              </Button>
+              <Button type="button" size="sm" variant={lang === "en" ? "default" : "ghost"} onClick={() => setLang("en")}>
+                {text.langEn}
+              </Button>
+            </div>
+            <div className="flex items-center gap-2">
+              <select className={fieldClass} value={display} aria-label={text.currencyLabel} onChange={(event) => setDisplay(event.target.value)}>
+                {[...new Set([sourceCurrency, ...DISPLAY])].map((code) => (
+                  <option key={code} value={code}>
+                    {code}
+                  </option>
+                ))}
+              </select>
+              <InfoTip label={text.infoAbout(text.fxLine)}>
+                {formatDate(fx.date, lang)}. {text.fxSource}
+                {display === sourceCurrency
+                  ? ` ${text.sameCurrency}`
+                  : ` 1 ${sourceCurrency} = ${rate == null ? "—" : formatNumber(rate, lang, 4)} ${display}.`}
               </InfoTip>
             </div>
           </div>
