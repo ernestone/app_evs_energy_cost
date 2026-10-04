@@ -22,6 +22,12 @@ import { formatMoney, formatNumber } from "@/lib/format"
 const EV = "#2563eb"
 const ICE = "#ea580c"
 
+function axisTick(value: number, lang: Lang) {
+  const abs = Math.abs(value)
+  const digits = abs >= 100 ? 0 : abs >= 10 ? 1 : 2
+  return formatNumber(value, lang, digits)
+}
+
 export function BreakevenChart({
   copy,
   lang,
@@ -68,7 +74,11 @@ export function BreakevenChart({
               tick={{ fill: "#64748b", fontSize: 12 }}
               tickFormatter={(value) => formatNumber(Number(value), lang, 0)}
             />
-            <YAxis tick={{ fill: "#64748b", fontSize: 12 }} width={56} />
+            <YAxis
+              tick={{ fill: "#64748b", fontSize: 12 }}
+              width={72}
+              tickFormatter={(value) => axisTick(Number(value), lang)}
+            />
             <Tooltip
               formatter={(value) => money(Number(value))}
               labelFormatter={(value) => `${formatNumber(Number(value), lang, 1)} ${copy.perYear}`}
@@ -113,6 +123,7 @@ export function MoneyCharts({
       <div className="grid gap-4 sm:grid-cols-2">
         <ChartCard title={copy.perYearChart} unit={currency}>
           <Bars
+            lang={lang}
             data={[{ name: copy.perYear, ev: year.ev, ice: year.ice }]}
             evSeries={evSeries}
             iceSeries={iceSeries}
@@ -123,6 +134,7 @@ export function MoneyCharts({
         </ChartCard>
         <ChartCard title={copy.perMonth} unit={currency}>
           <Bars
+            lang={lang}
             data={[{ name: copy.perMonth, ev: month.ev, ice: month.ice }]}
             evSeries={evSeries}
             iceSeries={iceSeries}
@@ -134,6 +146,7 @@ export function MoneyCharts({
       </div>
       <ChartCard title={copy.per100} unit={currency}>
         <Bars
+          lang={lang}
           data={[{ name: "100 km", ev: per100.ev, ice: per100.ice }]}
           evSeries={evSeries}
           iceSeries={iceSeries}
@@ -166,6 +179,7 @@ export function EnergyChart({
   return (
     <ChartCard title={copy.energyTitle} unit={copy.energyUnit}>
       <Bars
+        lang={lang}
         data={[{ name: "100 km", ev: energy.ev, ice: energy.ice }]}
         evSeries={evSeries}
         iceSeries={iceSeries}
@@ -207,6 +221,7 @@ export function EmissionCharts({
       <ChartCard title={`${copy.co2Title} ${copy.co2Year}`} unit={copy.tonnes}>
         {control}
         <Bars
+          lang={lang}
           data={[
             {
               name: copy.co2Year,
@@ -256,6 +271,7 @@ function ChartCard({ title, unit, children }: { title: string; unit: string; chi
 }
 
 function Bars({
+  lang,
   data,
   evSeries,
   iceSeries,
@@ -263,6 +279,7 @@ function Bars({
   evColor = EV,
   iceColor = ICE,
 }: {
+  lang: Lang
   data: { name: string; ev: number; ice: number }[]
   evSeries: string
   iceSeries: string
@@ -276,7 +293,11 @@ function Bars({
         <BarChart data={data} margin={{ top: 8, right: 8, left: 0, bottom: 0 }}>
           <CartesianGrid stroke="#e2e8f0" vertical={false} />
           <XAxis dataKey="name" tick={{ fill: "#64748b", fontSize: 12 }} />
-          <YAxis tick={{ fill: "#64748b", fontSize: 12 }} width={56} />
+          <YAxis
+            tick={{ fill: "#64748b", fontSize: 12 }}
+            width={72}
+            tickFormatter={(value) => axisTick(Number(value), lang)}
+          />
           <Tooltip formatter={(value) => format(Number(value))} />
           <Legend />
           <Bar dataKey="ev" name={evSeries} fill={evColor} radius={[4, 4, 0, 0]} />

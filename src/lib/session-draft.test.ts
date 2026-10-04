@@ -29,6 +29,7 @@ const draft: SessionDraft = {
   fuelPrice: "gasoline",
   ev: null,
   ice: null,
+  grouped: false,
 }
 
 test("a saved comparison round-trips and a broken payload is ignored", () => {
@@ -37,6 +38,7 @@ test("a saved comparison round-trips and a broken payload is ignored", () => {
   assert.equal(parseDraft("{"), null)
   assert.equal(parseDraft(JSON.stringify({ ...draft, horizon: 7 })), null)
   assert.equal(parseDraft(JSON.stringify({ ...draft, evKwh: 16 })), null)
-  const legacy = { ...draft, fuelPrice: undefined }
+  const legacy = { ...draft, fuelPrice: undefined, grouped: undefined }
   assert.equal(parseDraft(JSON.stringify(legacy))?.fuelPrice, "gasoline")
+  assert.equal(parseDraft(JSON.stringify(legacy))?.grouped, false)
 })

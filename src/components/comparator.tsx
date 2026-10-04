@@ -12,7 +12,7 @@ import { BreakevenChart, EmissionCharts, EnergyChart, MoneyCharts } from "@/comp
 import { InfoTip } from "@/components/info-tip"
 import { VehiclePicker } from "@/components/vehicle-picker"
 import { compare, DEFAULT_CITY_SHARE, DEFAULT_KM_YEAR, electricityBlend, ratesPer100, resolveElectricShare, spendProjection, type ElectricityBlend } from "@/lib/calc"
-import { crossRate, formatDate, formatMoney, formatNumber, parsePrice, priceInput } from "@/lib/format"
+import { crossRate, formatDate, formatMoney, formatNumber, parsePrice, priceInput, relocalizeInput, upgradeLegacyInput } from "@/lib/format"
 import { copy, type Copy } from "@/lib/i18n"
 import { originClass, type Origin } from "@/lib/look"
 import { languageFromList } from "@/lib/locale"
@@ -25,9 +25,9 @@ const fieldClass =
 
 type PowerRow = { id: string; label: string; percent: string; price: string }
 
-function boxRate(raw: string) {
+function boxRate(raw: string, lang: Lang) {
   if (!raw.trim()) return { value: null as number | null, invalid: false }
-  const parsed = parsePrice(raw)
+  const parsed = parsePrice(raw, lang)
   if (parsed == null) return { value: null, invalid: true }
   return { value: parsed, invalid: false }
 }
@@ -75,7 +75,7 @@ export function Comparator({
   const [horizon, setHorizon] = useState(5)
   const [ev, setEv] = useState<Vehicle | null>(null)
   const [ice, setIce] = useState<Vehicle | null>(null)
-  const [kmYear, setKmYear] = useState(String(DEFAULT_KM_YEAR))
+  const [kmYear, setKmYear] = useState(() => priceInput(DEFAULT_KM_YEAR, initialLang))
   const [cityPct, setCityPct] = useState(55)
   const [phevMode, setPhevMode] = useState<"epa" | "custom" | "icct26" | "icct56">("epa")
   const [customShare, setCustomShare] = useState<number | null>(null)
@@ -83,6 +83,7 @@ export function Comparator({
   const [fuelPrice, setFuelPrice] = useState<"gasoline" | "diesel">("gasoline")
   const [draftReady, setDraftReady] = useState(false)
   const skipCountryDefaults = useRef(false)
+  const prevLang = useRef(initialLang)
 
   useEffect(() => {
     document.documentElement.lang = lang
@@ -91,38 +92,80 @@ export function Comparator({
   useEffect(() => {
     const draft = readSessionDraft()
     if (draft) {
-      if (draft.countryCode) skipCountryDefaults.current = true
-      setLang(draft.lang)
-      setDisplay(draft.display)
-      setCountryCode(draft.countryCode)
-      setGasoline(draft.gasoline)
-      setDiesel(draft.diesel)
-      setPowerRows(draft.powerRows)
-      setEvPurchase(draft.evPurchase)
-      setIcePurchase(draft.icePurchase)
-      setEvKwh(draft.evKwh)
-      setEvKwhEdited(draft.evKwhEdited)
-      setIceLiters(draft.iceLiters)
-      setIceLitersEdited(draft.iceLitersEdited)
-      setIceKwh(draft.iceKwh)
-      setIceKwhEdited(draft.iceKwhEdited)
-      setPlugin(draft.plugin)
-      setFuelShare(draft.fuelShare)
-      setElecShare(draft.elecShare)
-      setHorizon(draft.horizon)
-      setKmYear(draft.kmYear)
-      setCityPct(draft.cityPct)
-      setPhevMode(draft.phevMode)
-      setCustomShare(draft.customShare)
-      setUpstream(draft.upstream)
-      setFuelPrice(draft.fuelPrice)
-      setEv(draft.ev)
-      setIce(draft.ice)
+      const stored = draft.grouped
+        ? draft
+        : {
+            ...draft,
+            gasoline: upgradeLegacyInput(draft.gasoline, draft.lang),
+            diesel: upgradeLegacyInput(draft.diesel, draft.lang),
+            powerRows: draft.powerRows.map((row) => ({
+              ...row,
+              percent: upgradeLegacyInput(row.percent, draft.lang),
+              price: upgradeLegacyInput(row.price, draft.lang),
+            })),
+            evPurchase: upgradeLegacyInput(draft.evPurchase, draft.lang),
+            icePurchase: upgradeLegacyInput(draft.icePurchase, draft.lang),
+            evKwh: upgradeLegacyInput(draft.evKwh, draft.lang),
+            iceLiters: upgradeLegacyInput(draft.iceLiters, draft.lang),
+            iceKwh: upgradeLegacyInput(draft.iceKwh, draft.lang),
+            fuelShare: upgradeLegacyInput(draft.fuelShare, draft.lang),
+            elecShare: upgradeLegacyInput(draft.elecShare, draft.lang),
+            kmYear: upgradeLegacyInput(draft.kmYear, draft.lang),
+          }
+      if (stored.countryCode) skipCountryDefaults.current = true
+      prevLang.current = stored.lang
+      setLang(stored.lang)
+      setDisplay(stored.display)
+      setCountryCode(stored.countryCode)
+      setGasoline(stored.gasoline)
+      setDiesel(stored.diesel)
+      setPowerRows(stored.powerRows)
+      setEvPurchase(stored.evPurchase)
+      setIcePurchase(stored.icePurchase)
+      setEvKwh(stored.evKwh)
+      setEvKwhEdited(stored.evKwhEdited)
+      setIceLiters(stored.iceLiters)
+      setIceLitersEdited(stored.iceLitersEdited)
+      setIceKwh(stored.iceKwh)
+      setIceKwhEdited(stored.iceKwhEdited)
+      setPlugin(stored.plugin)
+      setFuelShare(stored.fuelShare)
+      setElecShare(stored.elecShare)
+      setHorizon(stored.horizon)
+      setKmYear(stored.kmYear)
+      setCityPct(stored.cityPct)
+      setPhevMode(stored.phevMode)
+      setCustomShare(stored.customShare)
+      setUpstream(stored.upstream)
+      setFuelPrice(stored.fuelPrice)
+      setEv(stored.ev)
+      setIce(stored.ice)
     } else if (typeof navigator !== "undefined") {
-      setLang(languageFromList(navigator.languages))
+      const next = languageFromList(navigator.languages)
+      prevLang.current = next
+      setLang(next)
+      setKmYear(priceInput(DEFAULT_KM_YEAR, next))
     }
     setDraftReady(true)
   }, [])
+
+  useEffect(() => {
+    if (!draftReady || prevLang.current === lang) return
+    const from = prevLang.current
+    prevLang.current = lang
+    const fix = (value: string) => relocalizeInput(value, from, lang)
+    setGasoline(fix)
+    setDiesel(fix)
+    setPowerRows((rows) => rows.map((row) => ({ ...row, percent: fix(row.percent), price: fix(row.price) })))
+    setEvPurchase(fix)
+    setIcePurchase(fix)
+    setEvKwh(fix)
+    setIceLiters(fix)
+    setIceKwh(fix)
+    setFuelShare(fix)
+    setElecShare(fix)
+    setKmYear(fix)
+  }, [draftReady, lang])
 
   useEffect(() => {
     if (!draftReady || !country) return
@@ -130,14 +173,14 @@ export function Comparator({
       skipCountryDefaults.current = false
       return
     }
-    setGasoline(priceInput(country.gasolinePerLiter))
-    setDiesel(priceInput(country.dieselPerLiter))
+    setGasoline(priceInput(country.gasolinePerLiter, langRef.current))
+    setDiesel(priceInput(country.dieselPerLiter, langRef.current))
     setPowerRows([
       {
         id: "home",
         label: langRef.current === "es" ? "Casa" : "Home",
         percent: "100",
-        price: priceInput(country.electricityPerKwh),
+        price: priceInput(country.electricityPerKwh, langRef.current),
       },
     ])
     setEvPurchase("")
@@ -167,7 +210,7 @@ export function Comparator({
     )
   }, [lang])
 
-  const km = Number(kmYear)
+  const km = parsePrice(kmYear, lang) ?? Number.NaN
   const rateInput = {
     kmYear: 100,
     cityShare: cityPct / 100,
@@ -209,6 +252,7 @@ export function Comparator({
       fuelPrice,
       ev,
       ice,
+      grouped: true,
     })
   }, [
     draftReady,
@@ -242,43 +286,43 @@ export function Comparator({
 
   useEffect(() => {
     if (!draftReady || evKwhEdited) return
-    const next = priceInput(evOfficialKwh)
+    const next = priceInput(evOfficialKwh, lang)
     if (next === "" && ev) return
     setEvKwh(next)
-  }, [draftReady, evOfficialKwh, evKwhEdited, ev])
+  }, [draftReady, evOfficialKwh, evKwhEdited, ev, lang])
 
   useEffect(() => {
     if (!draftReady || iceLitersEdited) return
-    const next = priceInput(iceOfficialLiters)
+    const next = priceInput(iceOfficialLiters, lang)
     if (next === "" && ice) return
     setIceLiters(next)
-  }, [draftReady, iceOfficialLiters, iceLitersEdited, ice])
+  }, [draftReady, iceOfficialLiters, iceLitersEdited, ice, lang])
 
   useEffect(() => {
     if (!draftReady || iceKwhEdited) return
-    const next = priceInput(iceOfficialKwh)
+    const next = priceInput(iceOfficialKwh, lang)
     if (next === "" && ice) return
     setIceKwh(next)
-  }, [draftReady, iceOfficialKwh, iceKwhEdited, ice])
+  }, [draftReady, iceOfficialKwh, iceKwhEdited, ice, lang])
 
-  const evBox = boxRate(evKwh)
-  const iceFuelBox = boxRate(iceLiters)
-  const iceKwhBox = boxRate(iceKwh)
-  const fuelShareBox = boxRate(fuelShare)
-  const elecShareBox = boxRate(elecShare)
+  const evBox = boxRate(evKwh, lang)
+  const iceFuelBox = boxRate(iceLiters, lang)
+  const iceKwhBox = boxRate(iceKwh, lang)
+  const fuelShareBox = boxRate(fuelShare, lang)
+  const elecShareBox = boxRate(elecShare, lang)
   const shareSum = (fuelShareBox.value ?? 0) + (elecShareBox.value ?? 0)
   const sharesInvalid = plugin && (fuelShareBox.invalid || elecShareBox.invalid || fuelShareBox.value == null || elecShareBox.value == null || Math.abs(shareSum - 100) > 0.05)
   const consumptionInvalid = Boolean(country && (evBox.invalid || iceFuelBox.invalid || (plugin && iceKwhBox.invalid)))
   const sharesReady = plugin && !sharesInvalid && fuelShareBox.value != null && elecShareBox.value != null
   const blend = electricityBlend(
-    powerRows.map((row) => ({ percent: parsePrice(row.percent), pricePerKwh: parsePrice(row.price) })),
+    powerRows.map((row) => ({ percent: parsePrice(row.percent, lang), pricePerKwh: parsePrice(row.price, lang) })),
   )
   const result = compare(
     ev,
     ice,
     {
-      gasolinePerLiter: parsePrice(gasoline),
-      dieselPerLiter: parsePrice(diesel),
+      gasolinePerLiter: parsePrice(gasoline, lang),
+      dieselPerLiter: parsePrice(diesel, lang),
       electricityPerKwh: blend.ok ? blend.pricePerKwh : null,
       gridGPerKwh: country?.grid.gPerKwh ?? null,
     },
@@ -421,7 +465,7 @@ export function Comparator({
                     value={gasoline}
                     official={country.gasolinePerLiter}
                     onChange={setGasoline}
-                    onReset={() => setGasoline(priceInput(country.gasolinePerLiter))}
+                    onReset={() => setGasoline(priceInput(country.gasolinePerLiter, lang))}
                     text={text}
                     date={country.gasoline.date}
                     note={country.gasoline.note}
@@ -432,7 +476,7 @@ export function Comparator({
                     value={diesel}
                     official={country.dieselPerLiter}
                     onChange={setDiesel}
-                    onReset={() => setDiesel(priceInput(country.dieselPerLiter))}
+                    onReset={() => setDiesel(priceInput(country.dieselPerLiter, lang))}
                     text={text}
                     date={country.diesel.date}
                     note={country.diesel.note}
@@ -475,8 +519,8 @@ export function Comparator({
                           inputMode="decimal"
                           value={row.price}
                           aria-label={text.electricity}
-                          data-origin={row.price === priceInput(country.electricityPerKwh) ? "official" : "typed"}
-                          className={originClass(row.price === priceInput(country.electricityPerKwh) ? "official" : "typed")}
+                          data-origin={row.price === priceInput(country.electricityPerKwh, lang) ? "official" : "typed"}
+                          className={originClass(row.price === priceInput(country.electricityPerKwh, lang) ? "official" : "typed")}
                           onChange={(event) => updatePower(row.id, { price: event.target.value })}
                         />
                       </label>
@@ -504,11 +548,6 @@ export function Comparator({
                     </Button>
                     <p className="text-sm">{text.percentSum(formatNumber(blend.percentSum, lang, 1))}</p>
                   </div>
-                  {blend.ok ? (
-                    <p className="text-sm">
-                      {formatNumber(blend.pricePerKwh, lang, 4)} {sourceCurrency} {text.perKwh}
-                    </p>
-                  ) : null}
                 </div>
                 {!blend.ok && blend.reason === "sum" ? (
                   <p className="text-sm font-semibold leading-5 text-red-700 sm:max-w-48 sm:pt-7" data-percent-error>
@@ -601,38 +640,49 @@ export function Comparator({
                 <Input
                   inputMode="decimal"
                   aria-label={text.kmMonth}
-                  value={Number.isFinite(km) ? String(Math.round((km / 12) * 10) / 10) : ""}
+                  value={Number.isFinite(km) ? priceInput(Math.round((km / 12) * 10) / 10, lang) : ""}
                   className={originClass("typed")}
                   onChange={(event) => {
-                    const month = Number(event.target.value.replace(",", "."))
-                    if (Number.isFinite(month)) setKmYear(String(Math.round(month * 12)))
+                    const month = parsePrice(event.target.value, lang)
+                    if (month != null) setKmYear(priceInput(Math.round(month * 12), lang))
                   }}
                 />
               </label>
             </div>
             {country ? (
               <div className="grid gap-3">
-                <ConsumptionField
-                  label={`${text.kwhPer100} · ${text.evSeries}`}
-                  ariaLabel={`${text.kwhPer100} ${text.evSeries}`}
-                  hint={text.consumptionHint}
-                  value={evKwh}
-                  official={evOfficialKwh}
-                  edited={evKwhEdited}
-                  invalid={evBox.invalid}
-                  invalidText={text.consumptionInvalid}
-                  resetLabel={text.reset}
-                  onChange={(value) => {
-                    setEvKwhEdited(true)
-                    setEvKwh(value)
-                  }}
-                  onReset={() => setEvKwhEdited(false)}
-                />
+                <div className="grid gap-2">
+                  <div className="grid gap-3 rounded-xl border border-border bg-card p-3">
+                    <ConsumptionField
+                      lang={lang}
+                      label={`${text.kwhPer100} · ${text.evSeries}`}
+                      ariaLabel={`${text.kwhPer100} ${text.evSeries}`}
+                      hint={text.consumptionHint}
+                      value={evKwh}
+                      official={evOfficialKwh}
+                      edited={evKwhEdited}
+                      invalid={evBox.invalid}
+                      invalidText={text.consumptionInvalid}
+                      resetLabel={text.reset}
+                      onChange={(value) => {
+                        setEvKwhEdited(true)
+                        setEvKwh(value)
+                      }}
+                      onReset={() => setEvKwhEdited(false)}
+                    />
+                  </div>
+                  {blend.ok ? (
+                    <p className="text-sm leading-6" data-electricity-price>
+                      {text.electricityInUse(`${formatNumber(blend.pricePerKwh, lang, 4)} ${sourceCurrency} ${text.perKwh}`)}
+                    </p>
+                  ) : null}
+                </div>
                 {epaShareAfter === "ev" ? (
                   <CityShare cityPct={cityPct} onChange={setCityPct} text={text} mixedWltp={ice?.cycle === "WLTP"} />
                 ) : null}
                 <div className="grid gap-3 rounded-xl border border-border bg-card p-3">
                   <ConsumptionField
+                    lang={lang}
                     label={`${text.litersPer100} · ${text.iceSeries}`}
                     ariaLabel={`${text.litersPer100} ${text.iceSeries}`}
                     hint={text.consumptionHint}
@@ -678,6 +728,7 @@ export function Comparator({
                 {plugin ? (
                   <div className="grid gap-3">
                     <ConsumptionField
+                      lang={lang}
                       label={`${text.kwhPer100} · ${text.iceSeries}`}
                       ariaLabel={`${text.kwhPer100} ${text.iceSeries}`}
                       hint={text.pluginHelp}
@@ -733,7 +784,7 @@ export function Comparator({
                     ariaLabel={`${text.purchase} ${text.evSeries}`}
                     hint={text.purchaseHint}
                     value={evPurchase}
-                    invalid={evPurchase.trim() !== "" && parsePrice(evPurchase) == null}
+                    invalid={evPurchase.trim() !== "" && parsePrice(evPurchase, lang) == null}
                     invalidText={text.purchaseInvalid}
                     onChange={setEvPurchase}
                   />
@@ -742,7 +793,7 @@ export function Comparator({
                     ariaLabel={`${text.purchase} ${text.iceSeries}`}
                     hint={text.purchaseHint}
                     value={icePurchase}
-                    invalid={icePurchase.trim() !== "" && parsePrice(icePurchase) == null}
+                    invalid={icePurchase.trim() !== "" && parsePrice(icePurchase, lang) == null}
                     invalidText={text.purchaseInvalid}
                     onChange={setIcePurchase}
                   />
@@ -902,8 +953,8 @@ function Results({
     )
   }
 
-  const evPrice = parsePrice(evPurchase)
-  const icePrice = parsePrice(icePurchase)
+  const evPrice = parsePrice(evPurchase, lang)
+  const icePrice = parsePrice(icePurchase, lang)
   const purchaseInvalid =
     (evPurchase.trim() !== "" && evPrice == null) || (icePurchase.trim() !== "" && icePrice == null)
   const purchaseReady = evPrice != null && icePrice != null
@@ -1151,7 +1202,7 @@ function CityShare({
 }
 
 function fuelPriceLabel(raw: string, currency: string, lang: Lang, perLiter: string) {
-  const parsed = parsePrice(raw)
+  const parsed = parsePrice(raw, lang)
   if (parsed == null) return "—"
   return `${formatNumber(parsed, lang, 3)} ${currency} ${perLiter}`
 }
@@ -1254,6 +1305,7 @@ function PlainUse({
 }
 
 function ConsumptionField({
+  lang,
   label,
   ariaLabel,
   hint,
@@ -1266,6 +1318,7 @@ function ConsumptionField({
   onChange,
   onReset,
 }: {
+  lang: Lang
   label: string
   ariaLabel: string
   hint: string
@@ -1278,7 +1331,7 @@ function ConsumptionField({
   onChange: (value: string) => void
   onReset: () => void
 }) {
-  const origin = consumptionOrigin(value, official, edited)
+  const origin = consumptionOrigin(value, official, edited, lang)
   return (
     <label className="grid gap-1.5 text-sm">
       <span className="flex items-center gap-2">
@@ -1452,7 +1505,7 @@ function PriceField({
   note: string
   lang: Lang
 }) {
-  const origin = priceOrigin(value, official)
+  const origin = priceOrigin(value, official, lang)
   const source = [date ? formatDate(date, lang) : text.missingOfficial, note].filter(Boolean).join(". ")
   return (
     <label className="grid gap-1.5 text-sm">
@@ -1507,7 +1560,7 @@ function SourcesNote({
           <a className="underline" href="https://www.fueleconomy.gov/feg/ws/index.shtml">
             {text.epa}
           </a>
-          . {meta.epaFileDate}. {text.vehiclesKept} {meta.modelYearMin}–{meta.modelYearMax}, {meta.vehicleCount}.
+          . {meta.epaFileDate}. {text.vehiclesKept} {meta.modelYearMin}–{meta.modelYearMax}, {formatNumber(meta.vehicleCount, lang, 0)}.
         </li>
         <li>
           <a className="underline" href={catalog.eu.url}>{text.eea}</a> {catalog.eu.retrieved}. {catalog.eu.license}.{" "}
@@ -1611,19 +1664,19 @@ function Panel({ title, children }: { title: string; children: ReactNode }) {
   )
 }
 
-function consumptionOrigin(value: string, official: number | null, edited: boolean): Origin {
+function consumptionOrigin(value: string, official: number | null, edited: boolean, lang: Lang): Origin {
   if (official == null || edited) return "typed"
-  return valueOrigin(value, official, true)
+  return valueOrigin(value, official, true, lang)
 }
 
-function priceOrigin(value: string, official: number | null): Origin {
-  return valueOrigin(value, official, false)
+function priceOrigin(value: string, official: number | null, lang: Lang): Origin {
+  return valueOrigin(value, official, false, lang)
 }
 
-function valueOrigin(value: string, official: number | null, fromModel: boolean): Origin {
-  const parsed = parsePrice(value)
+function valueOrigin(value: string, official: number | null, fromModel: boolean, lang: Lang): Origin {
+  const parsed = parsePrice(value, lang)
   if (official == null) return "typed"
-  const shown = Number(priceInput(official))
+  const shown = Math.round(official * 10_000) / 10_000
   const matches = parsed != null && Math.abs(parsed - shown) < 1e-9
   if (!matches) return "typed"
   return fromModel ? "model" : "official"

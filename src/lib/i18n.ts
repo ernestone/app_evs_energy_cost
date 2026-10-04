@@ -160,7 +160,7 @@ export function copy(lang: Lang) {
     powerLabel: es ? "Etiqueta" : "Label",
     powerPercent: "%",
     homePower: es ? "Casa" : "Home",
-    addPower: es ? "Añadir un precio de luz" : "Add an electricity price",
+    addPower: es ? "Añadir precio de electricidad" : "Add electricity price",
     removePower: es ? "Quitar" : "Remove",
     percentSum: (sum: string) => (es ? `Los porcentajes suman ${sum} %.` : `The percents add up to ${sum}%.`),
     percentMismatch: es
@@ -189,6 +189,8 @@ export function copy(lang: Lang) {
       es
         ? `Se usa el precio ${kind === "diesel" ? "del diésel" : "de la gasolina"}: ${price}.`
         : `Using the ${kind === "diesel" ? "diesel" : "gasoline"} price: ${price}.`,
+    electricityInUse: (price: string) =>
+      es ? `Se usa el precio de la electricidad: ${price}` : `Electricity price in use: ${price}`,
     savingsMonth: es ? "Ahorro al mes" : "Savings per month",
     savingsYear: es ? "Ahorro al año" : "Savings per year",
     savingsHorizon: (years: number) => (es ? `Ahorro a ${years} años` : `Savings over ${years} years`),

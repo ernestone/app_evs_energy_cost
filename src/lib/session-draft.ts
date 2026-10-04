@@ -36,6 +36,7 @@ export interface SessionDraft {
   fuelPrice: "gasoline" | "diesel"
   ev: Vehicle | null
   ice: Vehicle | null
+  grouped: boolean
 }
 
 const HORIZONS = [5, 10, 15, 20] as const
@@ -109,6 +110,7 @@ export function parseDraft(raw: string | null): SessionDraft | null {
   const customOk = data.customShare == null || typeof data.customShare === "number"
   const upstream = flag(data.upstream)
   const fuelPrice = data.fuelPrice == null ? "gasoline" : data.fuelPrice === "gasoline" || data.fuelPrice === "diesel" ? data.fuelPrice : null
+  const grouped = data.grouped === true
   if (
     !lang ||
     display == null ||
@@ -168,6 +170,7 @@ export function parseDraft(raw: string | null): SessionDraft | null {
     fuelPrice,
     ev,
     ice,
+    grouped,
   }
 }
 

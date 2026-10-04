@@ -7,7 +7,7 @@
     "build": "next build",
     "start": "next start -H 0.0.0.0 -p 43123",
     "lint": "eslint",
-    "test": "node --experimental-strip-types --test src/lib/calc.test.ts src/lib/session-draft.test.ts src/lib/locale.test.ts",
+    "test": "node --experimental-strip-types --test src/lib/calc.test.ts src/lib/session-draft.test.ts src/lib/locale.test.ts src/lib/format.test.ts",
     "snapshot": "python3 scripts/build_snapshot.py"
   },
   "dependencies": {
