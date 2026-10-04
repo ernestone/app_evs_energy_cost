@@ -13,6 +13,7 @@ import { VehiclePicker } from "@/components/vehicle-picker"
 import { compare, DEFAULT_CITY_SHARE, DEFAULT_KM_YEAR, electricityBlend, ratesPer100, resolveElectricShare, spendProjection, type ElectricityBlend } from "@/lib/calc"
 import { crossRate, formatDate, formatMoney, formatNumber, parsePrice, priceInput } from "@/lib/format"
 import { copy, type Copy } from "@/lib/i18n"
+import { readSessionDraft, writeSessionDraft } from "@/lib/session-draft"
 import type { Country, CountryCatalogMeta, FxTable, Lang, SnapshotMeta, Vehicle } from "@/lib/types"
 
 const DISPLAY = ["EUR", "USD", "GBP", "CZK", "DKK", "HUF", "PLN", "RON", "SEK"]
@@ -70,13 +71,52 @@ export function Comparator({
   const [phevMode, setPhevMode] = useState<"epa" | "custom" | "icct26" | "icct56">("epa")
   const [customShare, setCustomShare] = useState<number | null>(null)
   const [upstream, setUpstream] = useState(false)
+  const [draftReady, setDraftReady] = useState(false)
+  const skipCountryDefaults = useRef(false)
 
   useEffect(() => {
     document.documentElement.lang = lang
   }, [lang])
 
   useEffect(() => {
+    const draft = readSessionDraft()
+    if (draft) {
+      if (draft.countryCode) skipCountryDefaults.current = true
+      setLang(draft.lang)
+      setDisplay(draft.display)
+      setCountryCode(draft.countryCode)
+      setGasoline(draft.gasoline)
+      setDiesel(draft.diesel)
+      setPowerRows(draft.powerRows)
+      setEvPurchase(draft.evPurchase)
+      setIcePurchase(draft.icePurchase)
+      setEvKwh(draft.evKwh)
+      setEvKwhEdited(draft.evKwhEdited)
+      setIceLiters(draft.iceLiters)
+      setIceLitersEdited(draft.iceLitersEdited)
+      setIceKwh(draft.iceKwh)
+      setIceKwhEdited(draft.iceKwhEdited)
+      setPlugin(draft.plugin)
+      setFuelShare(draft.fuelShare)
+      setElecShare(draft.elecShare)
+      setHorizon(draft.horizon)
+      setKmYear(draft.kmYear)
+      setCityPct(draft.cityPct)
+      setPhevMode(draft.phevMode)
+      setCustomShare(draft.customShare)
+      setUpstream(draft.upstream)
+      setEv(draft.ev)
+      setIce(draft.ice)
+    }
+    setDraftReady(true)
+  }, [])
+
+  useEffect(() => {
     if (!country) return
+    if (skipCountryDefaults.current) {
+      skipCountryDefaults.current = false
+      return
+    }
     setGasoline(priceInput(country.gasolinePerLiter))
     setDiesel(priceInput(country.dieselPerLiter))
     setPowerRows([
@@ -126,26 +166,79 @@ export function Comparator({
   const iceOfficial = ice ? ratesPer100(ice, rateInput) : null
   const iceOfficialLiters = iceOfficial?.litersPer100 ?? null
   const iceOfficialKwh = iceOfficial?.kwhPer100 ?? null
-  useEffect(() => {
-    setEvKwhEdited(false)
-  }, [ev?.id])
 
   useEffect(() => {
-    setIceLitersEdited(false)
-    setIceKwhEdited(false)
-  }, [ice?.id])
+    if (!draftReady) return
+    writeSessionDraft({
+      lang,
+      display,
+      countryCode,
+      gasoline,
+      diesel,
+      powerRows,
+      evPurchase,
+      icePurchase,
+      evKwh,
+      evKwhEdited,
+      iceLiters,
+      iceLitersEdited,
+      iceKwh,
+      iceKwhEdited,
+      plugin,
+      fuelShare,
+      elecShare,
+      horizon: horizon === 10 || horizon === 15 || horizon === 20 ? horizon : 5,
+      kmYear,
+      cityPct,
+      phevMode,
+      customShare,
+      upstream,
+      ev,
+      ice,
+    })
+  }, [
+    draftReady,
+    lang,
+    display,
+    countryCode,
+    gasoline,
+    diesel,
+    powerRows,
+    evPurchase,
+    icePurchase,
+    evKwh,
+    evKwhEdited,
+    iceLiters,
+    iceLitersEdited,
+    iceKwh,
+    iceKwhEdited,
+    plugin,
+    fuelShare,
+    elecShare,
+    horizon,
+    kmYear,
+    cityPct,
+    phevMode,
+    customShare,
+    upstream,
+    ev,
+    ice,
+  ])
 
   useEffect(() => {
-    if (!evKwhEdited) setEvKwh(priceInput(evOfficialKwh))
-  }, [evOfficialKwh, evKwhEdited])
+    if (!draftReady || evKwhEdited) return
+    setEvKwh(priceInput(evOfficialKwh))
+  }, [draftReady, evOfficialKwh, evKwhEdited])
 
   useEffect(() => {
-    if (!iceLitersEdited) setIceLiters(priceInput(iceOfficialLiters))
-  }, [iceOfficialLiters, iceLitersEdited])
+    if (!draftReady || iceLitersEdited) return
+    setIceLiters(priceInput(iceOfficialLiters))
+  }, [draftReady, iceOfficialLiters, iceLitersEdited])
 
   useEffect(() => {
-    if (!iceKwhEdited) setIceKwh(priceInput(iceOfficialKwh))
-  }, [iceOfficialKwh, iceKwhEdited])
+    if (!draftReady || iceKwhEdited) return
+    setIceKwh(priceInput(iceOfficialKwh))
+  }, [draftReady, iceOfficialKwh, iceKwhEdited])
 
   const evBox = boxRate(evKwh)
   const iceFuelBox = boxRate(iceLiters)
@@ -202,6 +295,19 @@ export function Comparator({
 
   function updatePower(id: string, patch: Partial<Pick<PowerRow, "label" | "percent" | "price">>) {
     setPowerRows((rows) => rows.map((row) => (row.id === id ? { ...row, ...patch } : row)))
+  }
+
+  function chooseEv(vehicle: Vehicle | null) {
+    setEvKwhEdited(false)
+    setEv(vehicle)
+  }
+
+  function chooseIce(vehicle: Vehicle | null) {
+    setIceLitersEdited(false)
+    setIceKwhEdited(false)
+    setPhevMode("epa")
+    setCustomShare(null)
+    setIce(vehicle)
   }
 
   return (
@@ -463,12 +569,12 @@ export function Comparator({
             {ev && !evOpen ? (
               <p className="text-sm">
                 {ev.year} {ev.make} {ev.version}{" "}
-                <button type="button" className="underline" onClick={() => setEv(null)}>
+                <button type="button" className="underline" onClick={() => chooseEv(null)}>
                   {text.clearModel}
                 </button>
               </p>
             ) : null}
-            {evOpen ? <VehiclePicker key={`ev-${countryCode}`} side="ev" country={countryCode} copy={text} selected={ev} onSelect={setEv} /> : null}
+            {evOpen ? <VehiclePicker key={`ev-${countryCode}`} side="ev" country={countryCode} copy={text} selected={ev} onSelect={chooseEv} /> : null}
             <PurchaseField
               label={`${text.purchase} (${sourceCurrency})`}
               ariaLabel={`${text.purchase} ${text.evSeries}`}
@@ -488,17 +594,13 @@ export function Comparator({
             {ice && !iceOpen ? (
               <p className="text-sm">
                 {ice.year} {ice.make} {ice.version}{" "}
-                <button type="button" className="underline" onClick={() => setIce(null)}>
+                <button type="button" className="underline" onClick={() => chooseIce(null)}>
                   {text.clearModel}
                 </button>
               </p>
             ) : null}
             {iceOpen ? (
-              <VehiclePicker key={`ice-${countryCode}`} side="ice" country={countryCode} copy={text} selected={ice} onSelect={(vehicle) => {
-                setIce(vehicle)
-                setPhevMode("epa")
-                setCustomShare(null)
-              }} />
+              <VehiclePicker key={`ice-${countryCode}`} side="ice" country={countryCode} copy={text} selected={ice} onSelect={chooseIce} />
             ) : null}
             <PurchaseField
               label={`${text.purchase} (${sourceCurrency})`}

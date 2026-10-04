@@ -1,4 +1,6 @@
 import { Comparator } from "@/components/comparator"
+
+export const dynamic = "force-dynamic"
 import { countryCatalogMeta } from "@/lib/catalog"
 import type { Country, FxTable, SnapshotMeta } from "@/lib/types"
 import countries from "../../data/snapshot/countries.json"
