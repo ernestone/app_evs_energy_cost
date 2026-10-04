@@ -535,7 +535,7 @@ export function Comparator({
                       </Button>
                     </div>
                   ))}
-                  <div className="grid sm:grid-cols-[minmax(0,1.2fr)_5rem_minmax(0,1fr)_auto]">
+                  <div className="grid gap-2 sm:grid-cols-[minmax(0,1.2fr)_5rem_minmax(0,1fr)_auto] sm:items-end">
                     <Input
                       readOnly
                       tabIndex={-1}
@@ -549,6 +549,9 @@ export function Comparator({
                         Math.abs(blend.percentSum - 100) > 0.05 && "border-red-600 text-red-700",
                       )}
                     />
+                    <Button type="button" tabIndex={-1} aria-hidden variant="ghost" size="sm" className="invisible hidden sm:col-start-4 sm:inline-flex">
+                      {text.removePower}
+                    </Button>
                   </div>
                   <div>
                     <Button
