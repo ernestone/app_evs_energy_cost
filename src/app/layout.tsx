@@ -14,7 +14,6 @@ const geistMono = Geist_Mono({
 })
 
 export const metadata: Metadata = {
-  title: "EV calculadora de costes",
   description:
     "Compara la energía y el CO₂ de usar un eléctrico y un coche de combustión, con precios del país y consumo EPA o WLTP.",
 }

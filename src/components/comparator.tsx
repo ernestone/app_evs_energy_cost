@@ -15,6 +15,7 @@ import { compare, DEFAULT_CITY_SHARE, DEFAULT_KM_YEAR, electricityBlend, ratesPe
 import { crossRate, formatDate, formatMoney, formatNumber, parsePrice, priceInput } from "@/lib/format"
 import { copy, type Copy } from "@/lib/i18n"
 import { originClass, type Origin } from "@/lib/look"
+import { languageFromList } from "@/lib/locale"
 import { readSessionDraft, writeSessionDraft } from "@/lib/session-draft"
 import type { Country, CountryCatalogMeta, FxTable, Lang, SnapshotMeta, Vehicle } from "@/lib/types"
 
@@ -36,13 +37,17 @@ export function Comparator({
   fx,
   meta,
   catalog,
+  initialLang,
+  initialCountry,
 }: {
   countries: Country[]
   fx: FxTable
   meta: SnapshotMeta
   catalog: CountryCatalogMeta
+  initialLang: Lang
+  initialCountry: string
 }) {
-  const [lang, setLang] = useState<Lang>("es")
+  const [lang, setLang] = useState<Lang>(initialLang)
   const langRef = useRef(lang)
   langRef.current = lang
   const text = copy(lang)
@@ -50,7 +55,7 @@ export function Comparator({
     document.title = text.name
   }, [text.name])
   const [display, setDisplay] = useState("EUR")
-  const [countryCode, setCountryCode] = useState("")
+  const [countryCode, setCountryCode] = useState(initialCountry)
   const country = countries.find((item) => item.code === countryCode) ?? null
   const [gasoline, setGasoline] = useState("")
   const [diesel, setDiesel] = useState("")
@@ -113,12 +118,14 @@ export function Comparator({
       setFuelPrice(draft.fuelPrice)
       setEv(draft.ev)
       setIce(draft.ice)
+    } else if (typeof navigator !== "undefined") {
+      setLang(languageFromList(navigator.languages))
     }
     setDraftReady(true)
   }, [])
 
   useEffect(() => {
-    if (!country) return
+    if (!draftReady || !country) return
     if (skipCountryDefaults.current) {
       skipCountryDefaults.current = false
       return
@@ -149,7 +156,7 @@ export function Comparator({
     setDisplay(country.currency)
     setEv(null)
     setIce(null)
-  }, [country])
+  }, [country, draftReady])
 
   useEffect(() => {
     setPowerRows((rows) =>
@@ -332,6 +339,8 @@ export function Comparator({
   }
 
   return (
+    <>
+    <title>{text.name}</title>
     <div className="bg-background text-foreground lg:flex lg:h-dvh lg:flex-col lg:overflow-hidden">
       <header className="shrink-0 border-b border-border/80">
         <div className="mx-auto flex max-w-[92rem] flex-col gap-3 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
@@ -430,7 +439,8 @@ export function Comparator({
                     lang={lang}
                   />
                 </div>
-                <div className="grid gap-2">
+                <div className="flex flex-col gap-3 sm:flex-row sm:items-start">
+                <div className="grid min-w-0 flex-1 gap-2">
                   <div className="flex items-center gap-2">
                     <p className="text-sm font-medium">{text.powerBlend}</p>
                     <InfoTip label={text.infoAbout(text.powerBlend)}>
@@ -498,15 +508,81 @@ export function Comparator({
                     <p className="text-sm">
                       {formatNumber(blend.pricePerKwh, lang, 4)} {sourceCurrency} {text.perKwh}
                     </p>
-                  ) : blend.reason === "sum" ? (
-                    <Alert>
-                      <AlertTitle>{text.powerBlend}</AlertTitle>
-                      <AlertDescription>{text.percentMismatch}</AlertDescription>
-                    </Alert>
                   ) : null}
+                </div>
+                {!blend.ok && blend.reason === "sum" ? (
+                  <p className="text-sm font-semibold leading-5 text-red-700 sm:max-w-48 sm:pt-7" data-percent-error>
+                    {text.percentOff}
+                  </p>
+                ) : null}
                 </div>
             </Group>
           ) : null}
+
+          <Group title={text.steps.models} info={<InfoTip label={text.infoAbout(text.steps.models)}>{text.modelOptional}</InfoTip>}>
+            <Button type="button" variant="outline" size="sm" aria-expanded={modelsOpen} onClick={() => setModelsOpen((open) => !open)}>
+              {modelsOpen ? text.hideModels : text.showModels}
+            </Button>
+            {ev && !modelsOpen ? (
+              <p className="text-sm">
+                {text.evSeries}: {ev.year} {ev.make} {ev.version}{" "}
+                <button type="button" className="underline" onClick={() => chooseEv(null)}>
+                  {text.clearModel}
+                </button>
+              </p>
+            ) : null}
+            {ice && !modelsOpen ? (
+              <p className="text-sm">
+                {text.iceSeries}: {ice.year} {ice.make} {ice.version}{" "}
+                <button type="button" className="underline" onClick={() => chooseIce(null)}>
+                  {text.clearModel}
+                </button>
+              </p>
+            ) : null}
+            {modelsOpen ? (
+              <div className="grid gap-4">
+                <div className="grid gap-3">
+                  <p className="text-sm font-medium">{text.steps.ev}</p>
+                  <VehiclePicker key={`ev-${countryCode}`} side="ev" country={countryCode} copy={text} selected={ev} onSelect={chooseEv} />
+                </div>
+                <div className="grid gap-3">
+                  <p className="text-sm font-medium">{text.steps.ice}</p>
+                  <VehiclePicker key={`ice-${countryCode}`} side="ice" country={countryCode} copy={text} selected={ice} onSelect={chooseIce} />
+                  {ice?.fuel === "premium" ? <Notice>{text.premiumWarn}</Notice> : null}
+                  {ice?.powertrain === "ffv" ? <Notice>{text.ffvNote}</Notice> : null}
+                  {ice?.powertrain === "phev" && ice.cycle !== "WLTP" && shareInfo ? (
+                    <div className="grid gap-3 rounded-lg bg-secondary/60 p-3">
+                      <p className="flex items-center gap-2 text-sm font-medium">
+                        {text.phevTitle}
+                        <InfoTip label={text.infoAbout(text.phevTitle)}>{text.phevAssumption}</InfoTip>
+                      </p>
+                      <select className={fieldClass} value={phevMode} onChange={(event) => setPhevMode(event.target.value as typeof phevMode)}>
+                        <option value="epa">{text.phevEpa}</option>
+                        <option value="custom">{text.phevCustom}</option>
+                        <option value="icct26">{text.phevIcct26}</option>
+                        <option value="icct56">{text.phevIcct56}</option>
+                      </select>
+                      <p className="text-sm">
+                        {text.officialUf}: {formatNumber(shareInfo.official * 100, lang, 1)} %. {text.phevShare}:{" "}
+                        {formatNumber(shareInfo.share * 100, lang, 1)} %.
+                      </p>
+                      {phevMode === "custom" ? (
+                        <div className="grid gap-2">
+                          <Label>{text.phevShare}</Label>
+                          <Slider
+                            min={0}
+                            max={100}
+                            value={[Math.round(shareInfo.share * 100)]}
+                            onValueChange={(value) => setCustomShare((Array.isArray(value) ? value[0] : value) / 100)}
+                          />
+                        </div>
+                      ) : null}
+                    </div>
+                  ) : null}
+                </div>
+              </div>
+            ) : null}
+          </Group>
 
           <Group title={text.steps.use}>
             <div className="grid gap-3 sm:grid-cols-2">
@@ -674,71 +750,6 @@ export function Comparator({
               </div>
             ) : null}
           </Group>
-
-          <Group title={text.steps.models} info={<InfoTip label={text.infoAbout(text.steps.models)}>{text.modelOptional}</InfoTip>}>
-            <Button type="button" variant="outline" size="sm" aria-expanded={modelsOpen} onClick={() => setModelsOpen((open) => !open)}>
-              {modelsOpen ? text.hideModels : text.showModels}
-            </Button>
-            {ev && !modelsOpen ? (
-              <p className="text-sm">
-                {text.evSeries}: {ev.year} {ev.make} {ev.version}{" "}
-                <button type="button" className="underline" onClick={() => chooseEv(null)}>
-                  {text.clearModel}
-                </button>
-              </p>
-            ) : null}
-            {ice && !modelsOpen ? (
-              <p className="text-sm">
-                {text.iceSeries}: {ice.year} {ice.make} {ice.version}{" "}
-                <button type="button" className="underline" onClick={() => chooseIce(null)}>
-                  {text.clearModel}
-                </button>
-              </p>
-            ) : null}
-            {modelsOpen ? (
-              <div className="grid gap-4">
-                <div className="grid gap-3">
-                  <p className="text-sm font-medium">{text.steps.ev}</p>
-                  <VehiclePicker key={`ev-${countryCode}`} side="ev" country={countryCode} copy={text} selected={ev} onSelect={chooseEv} />
-                </div>
-                <div className="grid gap-3">
-                  <p className="text-sm font-medium">{text.steps.ice}</p>
-                  <VehiclePicker key={`ice-${countryCode}`} side="ice" country={countryCode} copy={text} selected={ice} onSelect={chooseIce} />
-                  {ice?.fuel === "premium" ? <Notice>{text.premiumWarn}</Notice> : null}
-                  {ice?.powertrain === "ffv" ? <Notice>{text.ffvNote}</Notice> : null}
-                  {ice?.powertrain === "phev" && ice.cycle !== "WLTP" && shareInfo ? (
-                    <div className="grid gap-3 rounded-lg bg-secondary/60 p-3">
-                      <p className="flex items-center gap-2 text-sm font-medium">
-                        {text.phevTitle}
-                        <InfoTip label={text.infoAbout(text.phevTitle)}>{text.phevAssumption}</InfoTip>
-                      </p>
-                      <select className={fieldClass} value={phevMode} onChange={(event) => setPhevMode(event.target.value as typeof phevMode)}>
-                        <option value="epa">{text.phevEpa}</option>
-                        <option value="custom">{text.phevCustom}</option>
-                        <option value="icct26">{text.phevIcct26}</option>
-                        <option value="icct56">{text.phevIcct56}</option>
-                      </select>
-                      <p className="text-sm">
-                        {text.officialUf}: {formatNumber(shareInfo.official * 100, lang, 1)} %. {text.phevShare}:{" "}
-                        {formatNumber(shareInfo.share * 100, lang, 1)} %.
-                      </p>
-                      {phevMode === "custom" ? (
-                        <div className="grid gap-2">
-                          <Label>{text.phevShare}</Label>
-                          <Slider
-                            min={0}
-                            max={100}
-                            value={[Math.round(shareInfo.share * 100)]}
-                            onValueChange={(value) => setCustomShare((Array.isArray(value) ? value[0] : value) / 100)}
-                          />
-                        </div>
-                      ) : null}
-                    </div>
-                  ) : null}
-                </div>
-              </div>
-            ) : null}
-          </Group>
         </div>
 
         </div>
@@ -770,6 +781,7 @@ export function Comparator({
         </aside>
       </main>
     </div>
+    </>
   )
 }
 
@@ -899,31 +911,22 @@ function Results({
   const iceSeries = ice ? `${text.iceSeries} (${cycleOf(ice)})` : text.iceSeries
   return (
     <Panel title={text.steps.results}>
-      <SavingsBoxes
-        text={text}
-        lang={lang}
-        currency={display}
-        horizon={horizon}
-        purchaseReady={purchaseReady}
-        evPrice={evPrice}
-        icePrice={icePrice}
-        annualEv={result.ev.costYear}
-        annualIce={result.ice.costYear}
-        monthEv={result.ev.costMonth}
-        monthIce={result.ice.costMonth}
-        shown={shown}
-      />
       <Choice text={text} ev={ev} ice={ice} />
       {purchaseInvalid ? <Alert><AlertDescription>{text.purchaseInvalid}</AlertDescription></Alert> : null}
       <ResultBlock id="costes" title={text.costsBlock}>
-        <CostFigures
+        <CostTable
           text={text}
           lang={lang}
           currency={display}
-          monthEv={shown(result.ev.costMonth)}
-          monthIce={shown(result.ice.costMonth)}
-          yearEv={shown(result.ev.costYear)}
-          yearIce={shown(result.ice.costYear)}
+          horizon={horizon}
+          purchaseReady={purchaseReady}
+          evPrice={evPrice}
+          icePrice={icePrice}
+          annualEv={result.ev.costYear}
+          annualIce={result.ice.costYear}
+          monthEv={result.ev.costMonth}
+          monthIce={result.ice.costMonth}
+          shown={shown}
         />
         <SpendBlock
           text={text}
@@ -1026,60 +1029,7 @@ function ResultBlock({ id, title, extra, children }: { id: string; title: string
   )
 }
 
-function CostFigures({
-  text,
-  lang,
-  currency,
-  monthEv,
-  monthIce,
-  yearEv,
-  yearIce,
-}: {
-  text: Copy
-  lang: Lang
-  currency: string
-  monthEv: number
-  monthIce: number
-  yearEv: number
-  yearIce: number
-}) {
-  const money = (amount: number) => formatMoney(amount, currency, lang, Math.abs(amount) >= 100 ? 0 : 2)
-  const figures = [
-    { key: "month-ev", amount: monthEv, label: text.costMonthEv },
-    { key: "month-ice", amount: monthIce, label: text.costMonthIce },
-    { key: "year-ev", amount: yearEv, label: text.costYearEv },
-    { key: "year-ice", amount: yearIce, label: text.costYearIce },
-  ]
-  return (
-    <div className="grid gap-3 sm:grid-cols-2">
-      {figures.map((figure) => (
-        <article key={figure.key} className="rounded-xl border border-border bg-card px-4 py-4" data-cost={figure.key}>
-          <p className="text-sm text-muted-foreground">{figure.label}</p>
-          <p data-figure className="mt-2 font-heading text-4xl font-semibold tracking-tight text-foreground">
-            {money(figure.amount)}
-          </p>
-        </article>
-      ))}
-    </div>
-  )
-}
-
-function Choice({ text, ev, ice }: { text: Copy; ev: Vehicle | null; ice: Vehicle | null }) {
-  return (
-    <div className="grid gap-2 sm:grid-cols-2">
-      <p className="rounded-lg border border-border bg-card px-3 py-2 text-sm leading-5">
-        <span className="block text-xs uppercase tracking-wide text-muted-foreground">{text.evSeries}</span>
-        <span className="font-medium">{ev ? `${ev.year} ${ev.make} ${ev.version}` : text.noModel}</span>
-      </p>
-      <p className="rounded-lg border border-border bg-card px-3 py-2 text-sm leading-5">
-        <span className="block text-xs uppercase tracking-wide text-muted-foreground">{text.iceSeries}</span>
-        <span className="font-medium">{ice ? `${ice.year} ${ice.make} ${ice.version}` : text.noModel}</span>
-      </p>
-    </div>
-  )
-}
-
-function SavingsBoxes({
+function CostTable({
   text,
   lang,
   currency,
@@ -1109,37 +1059,64 @@ function SavingsBoxes({
   const series = spendProjection(purchaseReady ? evPrice : null, purchaseReady ? icePrice : null, annualEv, annualIce, horizon)
   const atHorizon = series.rows.find((row) => row.t === horizon) ?? series.rows[series.rows.length - 1]
   const money = (amount: number) => formatMoney(amount, currency, lang, Math.abs(amount) >= 100 ? 0 : 2)
-  const figures = [
-    { key: "month", amount: shown(monthIce - monthEv), label: (extra: boolean) => (extra ? text.extraMonth : text.savingsMonth) },
-    { key: "year", amount: shown(annualIce - annualEv), label: (extra: boolean) => (extra ? text.extraYear : text.savingsYear) },
-    {
-      key: "horizon",
-      amount: shown((atHorizon?.ice ?? 0) - (atHorizon?.ev ?? 0)),
-      label: (extra: boolean) => (extra ? text.extraHorizon(horizon) : text.savingsHorizon(horizon)),
-    },
+  const rows = [
+    { key: "month", label: text.perMonth, ev: shown(monthEv), ice: shown(monthIce) },
+    { key: "year", label: text.perYear, ev: shown(annualEv), ice: shown(annualIce) },
+    { key: "horizon", label: text.horizonRow(horizon), ev: shown(atHorizon?.ev ?? 0), ice: shown(atHorizon?.ice ?? 0) },
   ]
   return (
-    <div className="grid gap-3">
-      <div className="grid gap-3 sm:grid-cols-3">
-        {figures.map((figure) => {
-          const extra = figure.amount < -0.005
-          return (
-            <article key={figure.key} className="rounded-xl border border-border bg-card px-4 py-4" data-saving={figure.key}>
-              <p className="flex items-center gap-2 text-sm text-muted-foreground">
-                {figure.label(extra)}
-                {figure.key === "horizon" ? (
-                  <InfoTip label={text.infoAbout(figure.label(extra))}>
-                    {series.includesPurchase ? text.savingsWithPurchase : text.savingsWithoutPurchase}
-                  </InfoTip>
-                ) : null}
-              </p>
-              <p data-figure className="mt-2 font-heading text-4xl font-semibold tracking-tight text-foreground">
-                {money(figure.amount)}
-              </p>
-            </article>
-          )
-        })}
-      </div>
+    <div className="overflow-x-auto" data-cost-table>
+      <table className="w-full min-w-[28rem] border-collapse text-left text-sm">
+        <thead>
+          <tr className="border-b border-border text-muted-foreground">
+            <th className="px-2 py-2 font-medium" />
+            <th className="px-2 py-2 font-medium">{text.costColEv}</th>
+            <th className="px-2 py-2 font-medium">{text.costColIce}</th>
+            <th className="px-2 py-2 font-medium">{text.savingCol}</th>
+          </tr>
+        </thead>
+        <tbody>
+          {rows.map((row) => {
+            const saving = row.ice - row.ev
+            const positive = saving > 0.005
+            return (
+              <tr key={row.key} className="border-b border-border/70" data-row={row.key}>
+                <th className="px-2 py-3 font-medium text-foreground">
+                  <span className="inline-flex items-center gap-2">
+                    {row.label}
+                    {row.key === "horizon" ? (
+                      <InfoTip label={text.infoAbout(row.label)}>
+                        {series.includesPurchase ? text.savingsWithPurchase : text.savingsWithoutPurchase}
+                      </InfoTip>
+                    ) : null}
+                  </span>
+                </th>
+                <td className="px-2 py-3 font-heading text-lg font-semibold text-red-700" data-cost="ev">{money(row.ev)}</td>
+                <td className="px-2 py-3 font-heading text-lg font-semibold text-red-700" data-cost="ice">{money(row.ice)}</td>
+                <td className={`px-2 py-3 font-heading text-lg font-semibold ${positive ? "text-green-700" : "text-red-700"}`} data-saving>
+                  {money(saving)}
+                </td>
+              </tr>
+            )
+          })}
+        </tbody>
+      </table>
+    </div>
+  )
+}
+
+function Choice({ text, ev, ice }: { text: Copy; ev: Vehicle | null; ice: Vehicle | null }) {
+  if (!ev && !ice) return null
+  return (
+    <div className="grid gap-2 sm:grid-cols-2" data-models>
+      <p className="rounded-lg border border-border bg-card px-3 py-2 text-sm leading-5">
+        <span className="block text-xs uppercase tracking-wide text-muted-foreground">{text.evSeries}</span>
+        <span className="font-medium">{ev ? `${ev.year} ${ev.make} ${ev.version}` : text.noModel}</span>
+      </p>
+      <p className="rounded-lg border border-border bg-card px-3 py-2 text-sm leading-5">
+        <span className="block text-xs uppercase tracking-wide text-muted-foreground">{text.iceSeries}</span>
+        <span className="font-medium">{ice ? `${ice.year} ${ice.make} ${ice.version}` : text.noModel}</span>
+      </p>
     </div>
   )
 }
