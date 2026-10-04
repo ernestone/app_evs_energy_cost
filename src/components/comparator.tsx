@@ -45,6 +45,9 @@ export function Comparator({
   const langRef = useRef(lang)
   langRef.current = lang
   const text = copy(lang)
+  useEffect(() => {
+    document.title = text.name
+  }, [text.name])
   const [display, setDisplay] = useState("EUR")
   const [countryCode, setCountryCode] = useState("")
   const country = countries.find((item) => item.code === countryCode) ?? null
@@ -336,7 +339,6 @@ export function Comparator({
             <div className="min-w-0">
             <p className="font-heading text-2xl font-semibold tracking-tight">{text.name}</p>
             <p className="max-w-2xl text-sm leading-5 text-muted-foreground">{text.tagline}</p>
-            <p className="max-w-2xl text-sm leading-5">{text.notTco}</p>
             </div>
           </div>
           <div className="flex flex-wrap items-end gap-3">
@@ -348,16 +350,24 @@ export function Comparator({
                 {text.langEn}
               </Button>
             </div>
-            <label className="grid gap-1 text-xs text-muted-foreground">
-              {text.currencyLabel}
-              <select className={fieldClass} value={display} onChange={(event) => setDisplay(event.target.value)}>
-                {[...new Set([sourceCurrency, ...DISPLAY])].map((code) => (
-                  <option key={code} value={code}>
-                    {code}
-                  </option>
-                ))}
-              </select>
-            </label>
+            <div className="flex items-end gap-2">
+              <label className="grid gap-1 text-xs text-muted-foreground">
+                {text.currencyLabel}
+                <select className={fieldClass} value={display} aria-label={text.currencyLabel} onChange={(event) => setDisplay(event.target.value)}>
+                  {[...new Set([sourceCurrency, ...DISPLAY])].map((code) => (
+                    <option key={code} value={code}>
+                      {code}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <InfoTip label={text.infoAbout(text.fxLine)}>
+                {formatDate(fx.date, lang)}. {text.fxSource}
+                {display === sourceCurrency
+                  ? ` ${text.sameCurrency}`
+                  : ` 1 ${sourceCurrency} = ${rate == null ? "—" : formatNumber(rate, lang, 4)} ${display}.`}
+              </InfoTip>
+            </div>
           </div>
         </div>
       </header>
@@ -482,17 +492,6 @@ export function Comparator({
                     </Alert>
                   ) : null}
                 </div>
-                <p className="flex items-center gap-2 text-sm leading-6">
-                  <span className={`rounded-md px-2 py-1 ${originClass("official")}`}>
-                    {text.gridLabel}:{" "}
-                    <strong>
-                      {formatNumber(country.grid.gPerKwh, lang, 1)} {text.gridUnit}
-                    </strong>
-                  </span>
-                  <InfoTip label={text.infoAbout(text.gridLabel)}>
-                    {country.grid.year}. {country.grid.note}
-                  </InfoTip>
-                </p>
             </Group>
           ) : null}
 
@@ -745,9 +744,6 @@ export function Comparator({
             evPurchase={evPurchase}
             icePurchase={icePurchase}
             display={display}
-            sourceCurrency={sourceCurrency}
-            rate={rate}
-            fxDate={fx.date}
             shown={shown}
             moneyDigits={moneyDigits}
             ev={ev}
@@ -777,9 +773,6 @@ function Results({
   evPurchase,
   icePurchase,
   display,
-  sourceCurrency,
-  rate,
-  fxDate,
   shown,
   moneyDigits,
   ev,
@@ -802,9 +795,6 @@ function Results({
   evPurchase: string
   icePurchase: string
   display: string
-  sourceCurrency: string
-  rate: number | null
-  fxDate: string
   shown: (amount: number) => number
   moneyDigits: (amount: number) => number
   ev: Vehicle | null
@@ -912,11 +902,6 @@ function Results({
       />
       <Choice text={text} ev={ev} ice={ice} />
       {purchaseInvalid ? <Alert><AlertDescription>{text.purchaseInvalid}</AlertDescription></Alert> : null}
-      <p className="text-sm leading-6">{text.noWinner}</p>
-      <p className="text-xs text-muted-foreground">
-        {text.fxLine} {formatDate(fxDate, lang)}
-        {display === sourceCurrency ? "" : ` · 1 ${sourceCurrency} = ${rate == null ? "—" : formatNumber(rate, lang, 4)} ${display}`}
-      </p>
       <ResultBlock id="costes" title={text.costsBlock}>
         <CostFigures
           text={text}
@@ -974,7 +959,23 @@ function Results({
           )}
         </div>
       </ResultBlock>
-      <ResultBlock id="emisiones" title={text.emissionsBlock}>
+      <ResultBlock
+        id="emisiones"
+        title={text.emissionsBlock}
+        extra={
+          <span className="flex items-center gap-2 text-sm font-sans font-normal" data-grid>
+            <span className={`rounded-md px-2 py-1 ${originClass("official")}`}>
+              {text.gridLabel}:{" "}
+              <strong>
+                {formatNumber(country.grid.gPerKwh, lang, 1)} {text.gridUnit}
+              </strong>
+            </span>
+            <InfoTip label={text.infoAbout(text.gridLabel)}>
+              {country.grid.year}. {country.grid.note}
+            </InfoTip>
+          </span>
+        }
+      >
         <EmissionCharts
           copy={text}
           lang={lang}
@@ -1000,10 +1001,13 @@ function Results({
   )
 }
 
-function ResultBlock({ id, title, children }: { id: string; title: string; children: ReactNode }) {
+function ResultBlock({ id, title, extra, children }: { id: string; title: string; extra?: ReactNode; children: ReactNode }) {
   return (
     <section className="grid gap-3 border-t border-border pt-4" data-block={id}>
-      <h3 className="font-heading text-xl font-semibold tracking-tight">{title}</h3>
+      <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
+        <h3 className="font-heading text-xl font-semibold tracking-tight">{title}</h3>
+        {extra}
+      </div>
       {children}
     </section>
   )

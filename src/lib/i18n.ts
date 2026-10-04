@@ -4,13 +4,10 @@ import type { Lang } from "./types"
 export function copy(lang: Lang) {
   const es = lang === "es"
   return {
-    name: "EV comparator",
+    name: es ? "EV calculadora de costes" : "EV cost calculator",
     tagline: es
-      ? "Cuánto cuestan la energía y el CO₂ de usar dos coches, en un país."
-      : "What the energy and CO₂ of using two cars cost, in one country.",
-    notTco: es
-      ? "El equilibrio suma el precio de compra que escribas y la energía. El seguro, el mantenimiento y la depreciación no entran."
-      : "Breakeven adds the purchase price you type to the energy spend. Insurance, maintenance, and depreciation do not.",
+      ? "Calculadora de costes de energía y emisiones entre un vehículo eléctrico y uno de combustión"
+      : "Cost calculator for the energy and emissions of an electric vehicle and a combustion vehicle.",
     langEs: "Español",
     langEn: "English",
     currencyLabel: es ? "Moneda en pantalla" : "Display currency",
@@ -234,9 +231,6 @@ export function copy(lang: Lang) {
     projectionNote: es
       ? "Proyección con los precios congelados. No es un pronóstico. El horizonte de partida es 5 años; puedes alargarlo a 10, 15 o 20."
       : "Projection with prices frozen. Not a forecast. It starts at 5 years; you can extend it to 10, 15, or 20.",
-    noWinner: es
-      ? "No hay un ganador único. El dinero y el CO₂ se leen por separado: uno puede bajar y el otro subir."
-      : "There is no single winner. Money and CO₂ are read separately: one can fall while the other rises.",
     litersYear: es ? "litros al año" : "litres per year",
     kwhYear: es ? "kWh al año" : "kWh per year",
     range: es ? "Autonomía EPA" : "EPA range",
