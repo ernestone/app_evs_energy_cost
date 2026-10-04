@@ -170,8 +170,25 @@ export function copy(lang: Lang) {
     litersPer100: es ? "Litros por 100 km" : "Litres per 100 km",
     kwhPer100: es ? "kWh por 100 km" : "kWh per 100 km",
     consumptionHint: es
-      ? "Si eliges un modelo, aquí aparece su cifra. Si no, escríbela. Vacío o no válido, no hay resultado. Sin modelo, los litros se pagan como gasolina."
-      : "If you choose a model, its figure appears here. Otherwise type it. Empty or invalid, there is no result. With no model, litres are priced as gasoline.",
+      ? "Si eliges un modelo, aquí aparece su cifra. Si no, escríbela. Vacío o no válido, no hay resultado."
+      : "If you choose a model, its figure appears here. Otherwise type it. Empty or invalid, there is no result.",
+    fuelChoice: es ? "Combustible" : "Fuel",
+    fuelInUse: (kind: "gasoline" | "diesel", price: string) =>
+      es
+        ? `Se usa el precio ${kind === "diesel" ? "del diésel" : "de la gasolina"}: ${price}.`
+        : `Using the ${kind === "diesel" ? "diesel" : "gasoline"} price: ${price}.`,
+    savingsMonth: es ? "Ahorro al mes" : "Savings per month",
+    savingsYear: es ? "Ahorro al año" : "Savings per year",
+    savingsHorizon: (years: number) => (es ? `Ahorro a ${years} años` : `Savings over ${years} years`),
+    extraMonth: es ? "Coste extra al mes" : "Extra cost per month",
+    extraYear: es ? "Coste extra al año" : "Extra cost per year",
+    extraHorizon: (years: number) => (es ? `Coste extra a ${years} años` : `Extra cost over ${years} years`),
+    savingsWithPurchase: es
+      ? "El mes y el año son solo la energía. En el horizonte entra también el precio de compra de los dos coches."
+      : "Month and year are energy only. The horizon also includes both purchase prices.",
+    savingsWithoutPurchase: es
+      ? "El mes y el año son solo la energía. El precio de compra no entra en el horizonte."
+      : "Month and year are energy only. The purchase price is not included in the horizon.",
     consumptionInvalid: es
       ? "El consumo tiene que ser un número mayor o igual que cero."
       : "Consumption has to be a number greater than or equal to zero.",

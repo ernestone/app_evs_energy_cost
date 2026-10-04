@@ -34,6 +34,8 @@ export interface DriveInput {
   consumptionFromBoxes?: boolean
   /** When set, kilometres are split between the fuel rate and the electric rate. They must sum to 100. */
   motorShares?: { fuel: number; electric: number } | null
+  /** Which country fuel price pays the litres. Absent keeps the model's fuel. */
+  fuelPrice?: "gasoline" | "diesel"
 }
 
 export interface Prices {
@@ -349,7 +351,7 @@ export function compare(
   if (iceUse) {
     if (iceUse.kwhYear > 0 && prices.electricityPerKwh == null) missingPrices.add("electricity")
     if (iceUse.litersYear > 0) {
-      const fuelKind = iceVehicle?.fuel === "diesel" ? "diesel" : "gasoline"
+      const fuelKind = billFuel(input, iceVehicle)
       missingPrices.add(fuelKind)
       const fuel = fuelKind === "diesel" ? prices.dieselPerLiter : prices.gasolinePerLiter
       if (fuel != null) missingPrices.delete(fuelKind)
@@ -587,9 +589,14 @@ function priceEv(vehicle: Vehicle, measured: Measured, prices: Prices, input: Dr
   return side
 }
 
+function billFuel(input: DriveInput, vehicle: Vehicle | null): "gasoline" | "diesel" {
+  if (input.fuelPrice === "diesel" || input.fuelPrice === "gasoline") return input.fuelPrice
+  return vehicle?.fuel === "diesel" ? "diesel" : "gasoline"
+}
+
 function priceIce(vehicle: Vehicle, measured: Measured, prices: Prices, input: DriveInput): SideFigures {
   const side = blank()
-  const fuelPrice = vehicle.fuel === "diesel" ? prices.dieselPerLiter ?? 0 : prices.gasolinePerLiter ?? 0
+  const fuelPrice = billFuel(input, vehicle) === "diesel" ? prices.dieselPerLiter ?? 0 : prices.gasolinePerLiter ?? 0
   const elecPrice = prices.electricityPerKwh ?? 0
   side.litersYear = measured.litersYear
   side.kwhYear = measured.kwhYear

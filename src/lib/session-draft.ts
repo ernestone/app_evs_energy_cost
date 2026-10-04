@@ -33,6 +33,7 @@ export interface SessionDraft {
   phevMode: PhevMode
   customShare: number | null
   upstream: boolean
+  fuelPrice: "gasoline" | "diesel"
   ev: Vehicle | null
   ice: Vehicle | null
 }
@@ -107,6 +108,7 @@ export function parseDraft(raw: string | null): SessionDraft | null {
   const customShare = data.customShare == null || typeof data.customShare === "number" ? (data.customShare as number | null) : null
   const customOk = data.customShare == null || typeof data.customShare === "number"
   const upstream = flag(data.upstream)
+  const fuelPrice = data.fuelPrice == null ? "gasoline" : data.fuelPrice === "gasoline" || data.fuelPrice === "diesel" ? data.fuelPrice : null
   if (
     !lang ||
     display == null ||
@@ -130,7 +132,8 @@ export function parseDraft(raw: string | null): SessionDraft | null {
     cityPct == null ||
     !phevMode ||
     !customOk ||
-    upstream == null
+    upstream == null ||
+    fuelPrice == null
   ) {
     return null
   }
@@ -162,6 +165,7 @@ export function parseDraft(raw: string | null): SessionDraft | null {
     phevMode,
     customShare,
     upstream,
+    fuelPrice,
     ev,
     ice,
   }

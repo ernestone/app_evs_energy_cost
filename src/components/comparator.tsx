@@ -71,6 +71,7 @@ export function Comparator({
   const [phevMode, setPhevMode] = useState<"epa" | "custom" | "icct26" | "icct56">("epa")
   const [customShare, setCustomShare] = useState<number | null>(null)
   const [upstream, setUpstream] = useState(false)
+  const [fuelPrice, setFuelPrice] = useState<"gasoline" | "diesel">("gasoline")
   const [draftReady, setDraftReady] = useState(false)
   const skipCountryDefaults = useRef(false)
 
@@ -105,6 +106,7 @@ export function Comparator({
       setPhevMode(draft.phevMode)
       setCustomShare(draft.customShare)
       setUpstream(draft.upstream)
+      setFuelPrice(draft.fuelPrice)
       setEv(draft.ev)
       setIce(draft.ice)
     }
@@ -140,6 +142,7 @@ export function Comparator({
     setPlugin(false)
     setFuelShare("50")
     setElecShare("50")
+    setFuelPrice("gasoline")
     setDisplay(country.currency)
     setEv(null)
     setIce(null)
@@ -193,6 +196,7 @@ export function Comparator({
       phevMode,
       customShare,
       upstream,
+      fuelPrice,
       ev,
       ice,
     })
@@ -221,6 +225,7 @@ export function Comparator({
     phevMode,
     customShare,
     upstream,
+    fuelPrice,
     ev,
     ice,
   ])
@@ -272,6 +277,7 @@ export function Comparator({
       iceLitersPer100: iceFuelBox.value,
       iceKwhPer100: plugin ? iceKwhBox.value : null,
       motorShares: sharesReady ? { fuel: fuelShareBox.value as number, electric: elecShareBox.value as number } : null,
+      fuelPrice,
     },
   )
 
@@ -308,6 +314,7 @@ export function Comparator({
     setPhevMode("epa")
     setCustomShare(null)
     setIce(vehicle)
+    if (vehicle) setFuelPrice(vehicle.fuel === "diesel" ? "diesel" : "gasoline")
   }
 
   return (
@@ -482,24 +489,44 @@ export function Comparator({
                     }}
                     onReset={() => setEvKwhEdited(false)}
                   />
-                  <ConsumptionField
-                    label={`${text.litersPer100} · ${text.iceSeries}`}
-                    ariaLabel={`${text.litersPer100} ${text.iceSeries}`}
-                    hint={text.consumptionHint}
-                    value={iceLiters}
-                    official={iceOfficialLiters}
-                    edited={iceLitersEdited}
-                    invalid={iceFuelBox.invalid}
-                    invalidText={text.consumptionInvalid}
-                    yours={text.yours}
-                    officialLabel={text.official}
-                    resetLabel={text.reset}
-                    onChange={(value) => {
-                      setIceLitersEdited(true)
-                      setIceLiters(value)
-                    }}
-                    onReset={() => setIceLitersEdited(false)}
-                  />
+                  <div className="grid gap-3 rounded-xl border border-border bg-card p-3">
+                    <ConsumptionField
+                      label={`${text.litersPer100} · ${text.iceSeries}`}
+                      ariaLabel={`${text.litersPer100} ${text.iceSeries}`}
+                      hint={text.consumptionHint}
+                      value={iceLiters}
+                      official={iceOfficialLiters}
+                      edited={iceLitersEdited}
+                      invalid={iceFuelBox.invalid}
+                      invalidText={text.consumptionInvalid}
+                      yours={text.yours}
+                      officialLabel={text.official}
+                      resetLabel={text.reset}
+                      onChange={(value) => {
+                        setIceLitersEdited(true)
+                        setIceLiters(value)
+                      }}
+                      onReset={() => setIceLitersEdited(false)}
+                    />
+                    <div className="flex flex-wrap items-center gap-2">
+                      <span className="text-sm text-muted-foreground">{text.fuelChoice}</span>
+                      {(["gasoline", "diesel"] as const).map((kind) => (
+                        <Button
+                          key={kind}
+                          type="button"
+                          size="sm"
+                          variant={fuelPrice === kind ? "default" : "outline"}
+                          aria-pressed={fuelPrice === kind}
+                          onClick={() => setFuelPrice(kind)}
+                        >
+                          {kind === "diesel" ? text.diesel : text.gasoline}
+                        </Button>
+                      ))}
+                    </div>
+                    <p className="text-sm leading-6">
+                      {text.fuelInUse(fuelPrice, fuelPriceLabel(fuelPrice === "diesel" ? diesel : gasoline, sourceCurrency, lang, text.perLiter))}
+                    </p>
+                  </div>
                   <div className="flex items-start gap-3">
                     <Switch id="plugin" checked={plugin} onCheckedChange={setPlugin} />
                     <div>
@@ -933,6 +960,20 @@ function Results({
   const purchaseReady = evPrice != null && icePrice != null
   return (
     <Panel title={text.steps.results}>
+      <SavingsBoxes
+        text={text}
+        lang={lang}
+        currency={display}
+        horizon={horizon}
+        purchaseReady={purchaseReady}
+        evPrice={evPrice}
+        icePrice={icePrice}
+        annualEv={result.ev.costYear}
+        annualIce={result.ice.costYear}
+        monthEv={result.ev.costMonth}
+        monthIce={result.ice.costMonth}
+        shown={shown}
+      />
       <Choice text={text} ev={ev} ice={ice} />
       {purchaseInvalid ? <Alert><AlertDescription>{text.purchaseInvalid}</AlertDescription></Alert> : null}
       <SpendBlock
@@ -1008,6 +1049,71 @@ function Choice({ text, ev, ice }: { text: Copy; ev: Vehicle | null; ice: Vehicl
       </p>
     </div>
   )
+}
+
+function SavingsBoxes({
+  text,
+  lang,
+  currency,
+  horizon,
+  purchaseReady,
+  evPrice,
+  icePrice,
+  annualEv,
+  annualIce,
+  monthEv,
+  monthIce,
+  shown,
+}: {
+  text: Copy
+  lang: Lang
+  currency: string
+  horizon: number
+  purchaseReady: boolean
+  evPrice: number | null
+  icePrice: number | null
+  annualEv: number
+  annualIce: number
+  monthEv: number
+  monthIce: number
+  shown: (amount: number) => number
+}) {
+  const series = spendProjection(purchaseReady ? evPrice : null, purchaseReady ? icePrice : null, annualEv, annualIce, horizon)
+  const atHorizon = series.rows.find((row) => row.t === horizon) ?? series.rows[series.rows.length - 1]
+  const money = (amount: number) => formatMoney(amount, currency, lang, Math.abs(amount) >= 100 ? 0 : 2)
+  const figures = [
+    { key: "month", amount: shown(monthIce - monthEv), label: (extra: boolean) => (extra ? text.extraMonth : text.savingsMonth) },
+    { key: "year", amount: shown(annualIce - annualEv), label: (extra: boolean) => (extra ? text.extraYear : text.savingsYear) },
+    {
+      key: "horizon",
+      amount: shown((atHorizon?.ice ?? 0) - (atHorizon?.ev ?? 0)),
+      label: (extra: boolean) => (extra ? text.extraHorizon(horizon) : text.savingsHorizon(horizon)),
+    },
+  ]
+  return (
+    <div className="grid gap-3">
+      <div className="grid gap-3 sm:grid-cols-3">
+        {figures.map((figure) => {
+          const extra = figure.amount < -0.005
+          return (
+            <article key={figure.key} className="rounded-xl border border-border bg-card px-4 py-4" data-saving={figure.key}>
+              <p className="text-sm text-muted-foreground">{figure.label(extra)}</p>
+              <p className="mt-2 font-heading text-4xl font-semibold tracking-tight text-foreground">{money(figure.amount)}</p>
+            </article>
+          )
+        })}
+      </div>
+      <p className="text-sm leading-6 text-muted-foreground">
+        {series.includesPurchase ? text.savingsWithPurchase : text.savingsWithoutPurchase}
+      </p>
+    </div>
+  )
+}
+
+function fuelPriceLabel(raw: string, currency: string, lang: Lang, perLiter: string) {
+  const parsed = parsePrice(raw)
+  if (parsed == null) return "—"
+  return `${formatNumber(parsed, lang, 3)} ${currency} ${perLiter}`
 }
 
 function SpendBlock({

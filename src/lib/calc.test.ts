@@ -434,6 +434,25 @@ test("breakeven uses purchase plus frozen annual energy and refuses a higher ele
   assert.equal(breakeven(30000, 30000, 500, 500).status, "equal")
 })
 
+test("the fuel control prices the litres and the horizon difference follows the spend lines", () => {
+  const priced = prices({ gasolinePerLiter: 2, dieselPerLiter: 1, electricityPerKwh: 0.2, gridGPerKwh: 100 })
+  const base = drive({ kmYear: 10000, consumptionFromBoxes: true, evKwhPer100: 15, iceLitersPer100: 6 })
+  const gasoline = compare(null, null, priced, { ...base, fuelPrice: "gasoline" })
+  const diesel = compare(null, null, priced, { ...base, fuelPrice: "diesel" })
+  assert.equal(gasoline.ok && diesel.ok, true)
+  if (!gasoline.ok || !diesel.ok) return
+  assert.equal(gasoline.ice.costYear, 1200)
+  assert.equal(diesel.ice.costYear, 600)
+  assert.equal(diesel.ice.costMonth, 50)
+  const energy = spendProjection(null, null, gasoline.ev.costYear, diesel.ice.costYear, 5)
+  const atFive = energy.rows.find((row) => row.t === 5)
+  assert.equal(atFive && atFive.ice - atFive.ev, 1500)
+  const withPurchase = spendProjection(40000, 25000, gasoline.ev.costYear, diesel.ice.costYear, 10)
+  const atTen = withPurchase.rows.find((row) => row.t === 10)
+  assert.equal(withPurchase.includesPurchase, true)
+  assert.equal(atTen && atTen.ice - atTen.ev, 25000 + 600 * 10 - (40000 + 300 * 10))
+})
+
 test("Qashqai is not the EPA Rogue Sport", () => {
   assert.equal(sameModel("NISSAN", "NISSAN QASHQAI", "Nissan", "Rogue Sport"), false)
   assert.equal(sameModel("NISSAN", "QASHQAI", "Nissan", "Rogue"), false)
