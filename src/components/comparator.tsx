@@ -34,6 +34,7 @@ function boxRate(raw: string) {
 export function Comparator({
   countries,
   fx,
+  meta,
   catalog,
 }: {
   countries: Country[]
@@ -366,6 +367,19 @@ export function Comparator({
                 {display === sourceCurrency
                   ? ` ${text.sameCurrency}`
                   : ` 1 ${sourceCurrency} = ${rate == null ? "—" : formatNumber(rate, lang, 4)} ${display}.`}
+              </InfoTip>
+              <InfoTip label={text.infoAbout(text.steps.sources)} panelClassName="w-96 max-h-[min(32rem,calc(100dvh-6rem))] overflow-y-auto">
+                <SourcesNote
+                  text={text}
+                  lang={lang}
+                  meta={meta}
+                  catalog={catalog}
+                  country={country}
+                  fx={fx}
+                  display={display}
+                  sourceCurrency={sourceCurrency}
+                  rate={rate}
+                />
               </InfoTip>
             </div>
           </div>
@@ -1484,6 +1498,104 @@ function PriceField({
         </button>
       ) : null}
     </label>
+  )
+}
+
+function SourcesNote({
+  text,
+  lang,
+  meta,
+  catalog,
+  country,
+  fx,
+  display,
+  sourceCurrency,
+  rate,
+}: {
+  text: Copy
+  lang: Lang
+  meta: SnapshotMeta
+  catalog: CountryCatalogMeta
+  country: Country | null
+  fx: FxTable
+  display: string
+  sourceCurrency: string
+  rate: number | null
+}) {
+  return (
+    <div className="grid gap-3">
+      <p className="font-heading text-base font-semibold">{text.steps.sources}</p>
+      <p>{text.sourcesIntro}</p>
+      <ul className="grid gap-2">
+        <li>
+          <a className="underline" href="https://www.fueleconomy.gov/feg/ws/index.shtml">
+            {text.epa}
+          </a>
+          . {meta.epaFileDate}. {text.vehiclesKept} {meta.modelYearMin}–{meta.modelYearMax}, {meta.vehicleCount}.
+        </li>
+        <li>
+          <a className="underline" href={catalog.eu.url}>{text.eea}</a> {catalog.eu.retrieved}. {catalog.eu.license}.{" "}
+          <a className="underline" href={catalog.eu.licenseUrl}>{catalog.eu.license}</a>. {catalog.eu.index}. {catalog.eu.years}.
+        </li>
+        <li>
+          <a className="underline" href={catalog.gb.url}>{text.vcaFailed}</a> {catalog.gb.detail}
+        </li>
+        <li>
+          <a className="underline" href="https://energy.ec.europa.eu/data-and-analysis/weekly-oil-bulletin_en">
+            {text.oil}
+          </a>
+        </li>
+        <li>
+          <a className="underline" href="https://ec.europa.eu/eurostat/databrowser/view/nrg_pc_204/default/table">
+            {text.eurostat}
+          </a>
+        </li>
+        <li>
+          <a className="underline" href="https://www.eia.gov/petroleum/gasdiesel/">{text.eia}</a>
+        </li>
+        <li>
+          <a className="underline" href="https://www.gov.uk/government/statistics/weekly-road-fuel-prices">
+            {text.desnzFuel}
+          </a>
+        </li>
+        <li>
+          <a className="underline" href="https://www.gov.uk/government/statistical-data-sets/annual-domestic-energy-price-statistics">
+            {text.desnzPower}
+          </a>
+        </li>
+        <li>
+          <a className="underline" href="https://ember-energy.org/data/yearly-electricity-data/">{text.ember}</a>{" "}
+          <a className="underline" href="https://ember-energy.org/creative-commons/">CC BY 4.0</a>.
+        </li>
+        <li>
+          <a className="underline" href={meta.upstream.url}>{meta.upstream.citation}</a>
+        </li>
+        <li>
+          <a className="underline" href={meta.phevIcct.url}>{meta.phevIcct.citation}</a> {meta.phevIcct.note}
+        </li>
+      </ul>
+      {country ? (
+        <ul className="grid gap-2 text-muted-foreground">
+          <li>{country.gasoline.note}</li>
+          <li>{country.diesel.note}</li>
+          <li>{country.electricity.note}</li>
+        </ul>
+      ) : null}
+      <div>
+        <p className="font-heading text-base font-semibold">{text.assumptionsTitle}</p>
+        <ul className="mt-2 list-disc space-y-1 pl-5">
+          {text.assumptions.map((item) => (
+            <li key={item}>{item}</li>
+          ))}
+        </ul>
+      </div>
+      <p>
+        {text.fxLine}: {fx.provider}, {formatDate(fx.date, lang)}. {text.fxSource}{" "}
+        {display === sourceCurrency
+          ? text.sameCurrency
+          : `${text.sourcePricesStay} ${sourceCurrency}. 1 ${sourceCurrency} = ${rate == null ? "—" : formatNumber(rate, lang, 4)} ${display}.`}
+      </p>
+    </div>
   )
 }
 

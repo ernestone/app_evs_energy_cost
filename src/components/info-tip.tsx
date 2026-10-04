@@ -3,7 +3,7 @@
 import { useId, useLayoutEffect, useRef, useState, type ReactNode } from "react"
 import { createPortal } from "react-dom"
 
-export function InfoTip({ label, children }: { label: string; children: ReactNode }) {
+export function InfoTip({ label, children, panelClassName }: { label: string; children: ReactNode; panelClassName?: string }) {
   const [open, setOpen] = useState(false)
   const [box, setBox] = useState<{ top: number; left: number } | null>(null)
   const root = useRef<HTMLSpanElement>(null)
@@ -67,7 +67,7 @@ export function InfoTip({ label, children }: { label: string; children: ReactNod
               role="dialog"
               aria-label={label}
               style={{ position: "fixed", top: box?.top ?? -9999, left: box?.left ?? 0, zIndex: 80 }}
-              className="w-72 rounded-lg border border-border bg-popover p-3 text-sm leading-6 font-sans font-normal text-popover-foreground shadow-lg"
+              className={`rounded-lg border border-border bg-popover p-3 text-sm leading-6 font-sans font-normal text-popover-foreground shadow-lg ${panelClassName ?? "w-72"}`}
             >
               {children}
             </div>,
