@@ -162,6 +162,7 @@ export function copy(lang: Lang) {
     homePower: es ? "Casa" : "Home",
     addPower: es ? "Añadir precio de electricidad" : "Add electricity price",
     removePower: es ? "Quitar" : "Remove",
+    percentTotal: es ? "Total" : "Total",
     percentSum: (sum: string) => (es ? `Los porcentajes suman ${sum} %.` : `The percents add up to ${sum}%.`),
     percentMismatch: es
       ? "Tienen que sumar 100. Hasta entonces no se calcula un resultado con una media silenciosa."

@@ -15,6 +15,7 @@ import { compare, DEFAULT_CITY_SHARE, DEFAULT_KM_YEAR, electricityBlend, ratesPe
 import { crossRate, formatDate, formatMoney, formatNumber, parsePrice, priceInput, relocalizeInput, upgradeLegacyInput } from "@/lib/format"
 import { copy, type Copy } from "@/lib/i18n"
 import { originClass, type Origin } from "@/lib/look"
+import { cn } from "cn"
 import { languageFromList } from "@/lib/locale"
 import { readSessionDraft, writeSessionDraft } from "@/lib/session-draft"
 import type { Country, CountryCatalogMeta, FxTable, Lang, SnapshotMeta, Vehicle } from "@/lib/types"
@@ -483,8 +484,7 @@ export function Comparator({
                     lang={lang}
                   />
                 </div>
-                <div className="flex flex-col gap-3 sm:flex-row sm:items-start">
-                <div className="grid min-w-0 flex-1 gap-2">
+                <div className="grid min-w-0 gap-2">
                   <div className="flex items-center gap-2">
                     <p className="text-sm font-medium">{text.powerBlend}</p>
                     <InfoTip label={text.infoAbout(text.powerBlend)}>
@@ -535,7 +535,22 @@ export function Comparator({
                       </Button>
                     </div>
                   ))}
-                  <div className="flex flex-wrap items-center justify-between gap-2">
+                  <div className="grid sm:grid-cols-[minmax(0,1.2fr)_5rem_minmax(0,1fr)_auto]">
+                    <Input
+                      readOnly
+                      tabIndex={-1}
+                      value={formatNumber(blend.percentSum, lang, 1)}
+                      aria-label={text.percentTotal}
+                      data-percent-total
+                      aria-invalid={Math.abs(blend.percentSum - 100) > 0.05 ? true : undefined}
+                      className={cn(
+                        "sm:col-start-2",
+                        originClass("typed"),
+                        Math.abs(blend.percentSum - 100) > 0.05 && "border-red-600 text-red-700",
+                      )}
+                    />
+                  </div>
+                  <div>
                     <Button
                       type="button"
                       variant="outline"
@@ -546,14 +561,7 @@ export function Comparator({
                     >
                       {text.addPower}
                     </Button>
-                    <p className="text-sm">{text.percentSum(formatNumber(blend.percentSum, lang, 1))}</p>
                   </div>
-                </div>
-                {!blend.ok && blend.reason === "sum" ? (
-                  <p className="text-sm font-semibold leading-5 text-red-700 sm:max-w-48 sm:pt-7" data-percent-error>
-                    {text.percentOff}
-                  </p>
-                ) : null}
                 </div>
             </Group>
           ) : null}
@@ -651,26 +659,24 @@ export function Comparator({
             </div>
             {country ? (
               <div className="grid gap-3">
-                <div className="grid gap-2">
-                  <div className="grid gap-3 rounded-xl border border-border bg-card p-3">
-                    <ConsumptionField
-                      lang={lang}
-                      label={`${text.kwhPer100} · ${text.evSeries}`}
-                      ariaLabel={`${text.kwhPer100} ${text.evSeries}`}
-                      hint={text.consumptionHint}
-                      value={evKwh}
-                      official={evOfficialKwh}
-                      edited={evKwhEdited}
-                      invalid={evBox.invalid}
-                      invalidText={text.consumptionInvalid}
-                      resetLabel={text.reset}
-                      onChange={(value) => {
-                        setEvKwhEdited(true)
-                        setEvKwh(value)
-                      }}
-                      onReset={() => setEvKwhEdited(false)}
-                    />
-                  </div>
+                <div className="grid gap-3 rounded-xl border border-border bg-card p-3">
+                  <ConsumptionField
+                    lang={lang}
+                    label={`${text.kwhPer100} · ${text.evSeries}`}
+                    ariaLabel={`${text.kwhPer100} ${text.evSeries}`}
+                    hint={text.consumptionHint}
+                    value={evKwh}
+                    official={evOfficialKwh}
+                    edited={evKwhEdited}
+                    invalid={evBox.invalid}
+                    invalidText={text.consumptionInvalid}
+                    resetLabel={text.reset}
+                    onChange={(value) => {
+                      setEvKwhEdited(true)
+                      setEvKwh(value)
+                    }}
+                    onReset={() => setEvKwhEdited(false)}
+                  />
                   {blend.ok ? (
                     <p className="text-sm leading-6" data-electricity-price>
                       {text.electricityInUse(`${formatNumber(blend.pricePerKwh, lang, 4)} ${sourceCurrency} ${text.perKwh}`)}
@@ -921,9 +927,7 @@ function Results({
         <Choice text={text} ev={ev} ice={ice} />
         <Alert>
           <AlertTitle>{text.powerBlend}</AlertTitle>
-          <AlertDescription>
-            {text.percentSum(formatNumber(blend.percentSum, lang, 1))} {text.percentMismatch}
-          </AlertDescription>
+          <AlertDescription>{text.percentMismatch}</AlertDescription>
         </Alert>
       </Panel>
     )
