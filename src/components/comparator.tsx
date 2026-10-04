@@ -9,10 +9,12 @@ import { Label } from "@/components/ui/label"
 import { Slider } from "@/components/ui/slider"
 import { Switch } from "@/components/ui/switch"
 import { BreakevenChart, Charts } from "@/components/charts"
+import { InfoTip } from "@/components/info-tip"
 import { VehiclePicker } from "@/components/vehicle-picker"
 import { compare, DEFAULT_CITY_SHARE, DEFAULT_KM_YEAR, electricityBlend, ratesPer100, resolveElectricShare, spendProjection, type ElectricityBlend } from "@/lib/calc"
 import { crossRate, formatDate, formatMoney, formatNumber, parsePrice, priceInput } from "@/lib/format"
 import { copy, type Copy } from "@/lib/i18n"
+import { lookPalette, originClass, type Look, type Origin } from "@/lib/look"
 import { readSessionDraft, writeSessionDraft } from "@/lib/session-draft"
 import type { Country, CountryCatalogMeta, FxTable, Lang, SnapshotMeta, Vehicle } from "@/lib/types"
 
@@ -58,8 +60,8 @@ export function Comparator({
   const [iceLitersEdited, setIceLitersEdited] = useState(false)
   const [iceKwh, setIceKwh] = useState("")
   const [iceKwhEdited, setIceKwhEdited] = useState(false)
-  const [evOpen, setEvOpen] = useState(false)
-  const [iceOpen, setIceOpen] = useState(false)
+  const [modelsOpen, setModelsOpen] = useState(false)
+  const [look, setLook] = useState<Look>("clara")
   const [plugin, setPlugin] = useState(false)
   const [fuelShare, setFuelShare] = useState("50")
   const [elecShare, setElecShare] = useState("50")
@@ -137,8 +139,7 @@ export function Comparator({
     setIceLitersEdited(false)
     setIceKwh("")
     setIceKwhEdited(false)
-    setEvOpen(false)
-    setIceOpen(false)
+    setModelsOpen(false)
     setPlugin(false)
     setFuelShare("50")
     setElecShare("50")
@@ -318,7 +319,7 @@ export function Comparator({
   }
 
   return (
-    <div className="bg-background text-foreground lg:flex lg:h-dvh lg:flex-col lg:overflow-hidden">
+    <div data-style={look} className="bg-background text-foreground lg:flex lg:h-dvh lg:flex-col lg:overflow-hidden">
       <header className="shrink-0 border-b border-border/80">
         <div className="mx-auto flex max-w-[92rem] flex-col gap-3 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
           <div className="min-w-0">
@@ -327,6 +328,13 @@ export function Comparator({
             <p className="max-w-2xl text-sm leading-5">{text.notTco}</p>
           </div>
           <div className="flex flex-wrap items-end gap-3">
+            <div className="flex rounded-lg bg-card p-0.5 ring-1 ring-foreground/10" role="group" aria-label={text.styleLabel}>
+              {(["clara", "tinta", "contraste"] as const).map((name) => (
+                <Button key={name} type="button" size="sm" variant={look === name ? "default" : "ghost"} aria-pressed={look === name} onClick={() => setLook(name)}>
+                  {name === "clara" ? "Clara" : name === "tinta" ? "Tinta" : "Contraste"}
+                </Button>
+              ))}
+            </div>
             <div className="flex rounded-lg bg-card p-0.5 ring-1 ring-foreground/10">
               <Button type="button" size="sm" variant={lang === "es" ? "default" : "ghost"} onClick={() => setLang("es")}>
                 {text.langEs}
@@ -352,11 +360,11 @@ export function Comparator({
       <main className="mx-auto flex w-full max-w-[92rem] flex-col gap-4 px-4 py-4 lg:grid lg:min-h-0 lg:flex-1 lg:grid-cols-[minmax(22rem,0.88fr)_minmax(0,1.12fr)] lg:overflow-hidden lg:py-3">
         <div className="contents lg:flex lg:min-h-0 lg:flex-col lg:gap-4 lg:overflow-y-auto lg:overscroll-contain lg:pr-1">
         <div className="order-1 grid content-start gap-4 lg:order-none">
-          <Step n={1} title={text.steps.country}>
-            <p className="text-sm text-muted-foreground">{text.countryHint}</p>
+          <Group title={text.steps.country} info={<InfoTip label={text.infoAbout(text.steps.country)}>{text.countryHint}</InfoTip>}>
             <select
               className={fieldClass}
               value={countryCode}
+              aria-label={text.steps.country}
               onChange={(event) => setCountryCode(event.target.value)}
             >
               <option value="">{text.chooseCountry}</option>
@@ -366,9 +374,11 @@ export function Comparator({
                 </option>
               ))}
             </select>
-            {country ? (
-              <>
-                <div className="grid gap-3 sm:grid-cols-3">
+          </Group>
+
+          {country ? (
+            <Group title={text.steps.prices}>
+                <div className="grid gap-3 sm:grid-cols-2">
                   <PriceField
                     label={`${text.gasoline} (${sourceCurrency} ${text.perLiter})`}
                     value={gasoline}
@@ -377,7 +387,9 @@ export function Comparator({
                     onReset={() => setGasoline(priceInput(country.gasolinePerLiter))}
                     text={text}
                     date={country.gasoline.date}
+                    note={country.gasoline.note}
                     lang={lang}
+                    look={look}
                   />
                   <PriceField
                     label={`${text.diesel} (${sourceCurrency} ${text.perLiter})`}
@@ -387,13 +399,18 @@ export function Comparator({
                     onReset={() => setDiesel(priceInput(country.dieselPerLiter))}
                     text={text}
                     date={country.diesel.date}
+                    note={country.diesel.note}
                     lang={lang}
+                    look={look}
                   />
                 </div>
                 <div className="grid gap-2">
-                  <div>
+                  <div className="flex items-center gap-2">
                     <p className="text-sm font-medium">{text.powerBlend}</p>
-                    <p className="text-sm leading-6 text-muted-foreground">{text.powerBlendHelp}</p>
+                    <InfoTip label={text.infoAbout(text.powerBlend)}>
+                      {text.powerBlendHelp}
+                      {country.electricity.date ? ` ${text.homePower}: ${formatDate(country.electricity.date, lang)}. ${country.electricity.note}` : ""}
+                    </InfoTip>
                   </div>
                   {powerRows.map((row) => (
                     <div key={row.id} className="grid gap-2 sm:grid-cols-[minmax(0,1.2fr)_5rem_minmax(0,1fr)_auto] sm:items-end">
@@ -402,6 +419,7 @@ export function Comparator({
                         <Input
                           value={row.label}
                           aria-label={text.powerLabel}
+                          className={originClass(look, "typed")}
                           onChange={(event) => updatePower(row.id, { label: event.target.value })}
                         />
                       </label>
@@ -411,6 +429,7 @@ export function Comparator({
                           inputMode="decimal"
                           value={row.percent}
                           aria-label={text.powerPercent}
+                          className={originClass(look, "typed")}
                           onChange={(event) => updatePower(row.id, { percent: event.target.value })}
                         />
                       </label>
@@ -420,6 +439,8 @@ export function Comparator({
                           inputMode="decimal"
                           value={row.price}
                           aria-label={text.electricity}
+                          data-origin={row.price === priceInput(country.electricityPerKwh) ? "official" : "typed"}
+                          className={originClass(look, row.price === priceInput(country.electricityPerKwh) ? "official" : "typed")}
                           onChange={(event) => updatePower(row.id, { price: event.target.value })}
                         />
                       </label>
@@ -457,236 +478,40 @@ export function Comparator({
                       <AlertDescription>{text.percentMismatch}</AlertDescription>
                     </Alert>
                   ) : null}
-                  {country.electricity.date ? (
-                    <p className="text-xs text-muted-foreground">
-                      {text.homePower}: {formatDate(country.electricity.date, lang)}. {country.electricity.note}
-                    </p>
-                  ) : null}
                 </div>
-                <p className="text-sm leading-6">
-                  {text.gridLabel}:{" "}
-                  <strong>
-                    {formatNumber(country.grid.gPerKwh, lang, 1)} {text.gridUnit}
-                  </strong>{" "}
-                  · {country.grid.year}. {country.grid.note}
+                <p className="flex items-center gap-2 text-sm leading-6">
+                  <span className={`rounded-md px-2 py-1 ${originClass(look, "official")}`}>
+                    {text.gridLabel}:{" "}
+                    <strong>
+                      {formatNumber(country.grid.gPerKwh, lang, 1)} {text.gridUnit}
+                    </strong>
+                  </span>
+                  <InfoTip label={text.infoAbout(text.gridLabel)}>
+                    {country.grid.year}. {country.grid.note}
+                  </InfoTip>
                 </p>
-                <div className="grid gap-3">
-                  <ConsumptionField
-                    label={`${text.kwhPer100} · ${text.evSeries}`}
-                    ariaLabel={`${text.kwhPer100} ${text.evSeries}`}
-                    hint={text.consumptionHint}
-                    value={evKwh}
-                    official={evOfficialKwh}
-                    edited={evKwhEdited}
-                    invalid={evBox.invalid}
-                    invalidText={text.consumptionInvalid}
-                    yours={text.yours}
-                    officialLabel={text.official}
-                    resetLabel={text.reset}
-                    onChange={(value) => {
-                      setEvKwhEdited(true)
-                      setEvKwh(value)
-                    }}
-                    onReset={() => setEvKwhEdited(false)}
-                  />
-                  <div className="grid gap-3 rounded-xl border border-border bg-card p-3">
-                    <ConsumptionField
-                      label={`${text.litersPer100} · ${text.iceSeries}`}
-                      ariaLabel={`${text.litersPer100} ${text.iceSeries}`}
-                      hint={text.consumptionHint}
-                      value={iceLiters}
-                      official={iceOfficialLiters}
-                      edited={iceLitersEdited}
-                      invalid={iceFuelBox.invalid}
-                      invalidText={text.consumptionInvalid}
-                      yours={text.yours}
-                      officialLabel={text.official}
-                      resetLabel={text.reset}
-                      onChange={(value) => {
-                        setIceLitersEdited(true)
-                        setIceLiters(value)
-                      }}
-                      onReset={() => setIceLitersEdited(false)}
-                    />
-                    <div className="flex flex-wrap items-center gap-2">
-                      <span className="text-sm text-muted-foreground">{text.fuelChoice}</span>
-                      {(["gasoline", "diesel"] as const).map((kind) => (
-                        <Button
-                          key={kind}
-                          type="button"
-                          size="sm"
-                          variant={fuelPrice === kind ? "default" : "outline"}
-                          aria-pressed={fuelPrice === kind}
-                          onClick={() => setFuelPrice(kind)}
-                        >
-                          {kind === "diesel" ? text.diesel : text.gasoline}
-                        </Button>
-                      ))}
-                    </div>
-                    <p className="text-sm leading-6">
-                      {text.fuelInUse(fuelPrice, fuelPriceLabel(fuelPrice === "diesel" ? diesel : gasoline, sourceCurrency, lang, text.perLiter))}
-                    </p>
-                  </div>
-                  <div className="flex items-start gap-3">
-                    <Switch id="plugin" checked={plugin} onCheckedChange={setPlugin} />
-                    <div>
-                      <Label htmlFor="plugin">{text.pluginToggle}</Label>
-                      <p className="text-sm leading-6 text-muted-foreground">{text.pluginHelp}</p>
-                    </div>
-                  </div>
-                  {plugin ? (
-                    <div className="grid gap-3">
-                      <ConsumptionField
-                        label={`${text.kwhPer100} · ${text.iceSeries}`}
-                        ariaLabel={`${text.kwhPer100} ${text.iceSeries}`}
-                        hint={text.pluginHelp}
-                        value={iceKwh}
-                        official={iceOfficialKwh}
-                        edited={iceKwhEdited}
-                        invalid={iceKwhBox.invalid}
-                        invalidText={text.consumptionInvalid}
-                        yours={text.yours}
-                        officialLabel={text.official}
-                        resetLabel={text.reset}
-                        onChange={(value) => {
-                          setIceKwhEdited(true)
-                          setIceKwh(value)
-                        }}
-                        onReset={() => setIceKwhEdited(false)}
-                      />
-                      <div className="grid gap-3 sm:grid-cols-2">
-                        <label className="grid gap-1 text-sm">
-                          {text.fuelShare}
-                          <Input
-                            inputMode="decimal"
-                            aria-label={text.fuelShare}
-                            value={fuelShare}
-                            onChange={(event) => setFuelShare(event.target.value)}
-                          />
-                        </label>
-                        <label className="grid gap-1 text-sm">
-                          {text.electricShare}
-                          <Input
-                            inputMode="decimal"
-                            aria-label={text.electricShare}
-                            value={elecShare}
-                            onChange={(event) => setElecShare(event.target.value)}
-                          />
-                        </label>
-                      </div>
-                      <p className="text-sm">{text.percentSum(formatNumber(shareSum, lang, 1))}</p>
-                      {sharesInvalid ? (
-                        <Alert>
-                          <AlertTitle>{text.pluginToggle}</AlertTitle>
-                          <AlertDescription>{text.percentMismatch}</AlertDescription>
-                        </Alert>
-                      ) : null}
-                    </div>
-                  ) : null}
-                </div>
-              </>
-            ) : null}
-          </Step>
+            </Group>
+          ) : null}
 
-          <Step n={2} title={text.steps.ev}>
-            <p className="text-sm text-muted-foreground">{text.modelOptional}</p>
-            <Button type="button" variant="outline" size="sm" aria-expanded={evOpen} onClick={() => setEvOpen((open) => !open)}>
-              {evOpen ? text.hideModel : text.openModel}
-            </Button>
-            {ev && !evOpen ? (
-              <p className="text-sm">
-                {ev.year} {ev.make} {ev.version}{" "}
-                <button type="button" className="underline" onClick={() => chooseEv(null)}>
-                  {text.clearModel}
-                </button>
-              </p>
-            ) : null}
-            {evOpen ? <VehiclePicker key={`ev-${countryCode}`} side="ev" country={countryCode} copy={text} selected={ev} onSelect={chooseEv} /> : null}
-            <PurchaseField
-              label={`${text.purchase} (${sourceCurrency})`}
-              ariaLabel={`${text.purchase} ${text.evSeries}`}
-              hint={text.purchaseHint}
-              value={evPurchase}
-              invalid={evPurchase.trim() !== "" && parsePrice(evPurchase) == null}
-              invalidText={text.purchaseInvalid}
-              onChange={setEvPurchase}
-            />
-          </Step>
-
-          <Step n={3} title={text.steps.ice}>
-            <p className="text-sm text-muted-foreground">{text.modelOptional}</p>
-            <Button type="button" variant="outline" size="sm" aria-expanded={iceOpen} onClick={() => setIceOpen((open) => !open)}>
-              {iceOpen ? text.hideModel : text.openModel}
-            </Button>
-            {ice && !iceOpen ? (
-              <p className="text-sm">
-                {ice.year} {ice.make} {ice.version}{" "}
-                <button type="button" className="underline" onClick={() => chooseIce(null)}>
-                  {text.clearModel}
-                </button>
-              </p>
-            ) : null}
-            {iceOpen ? (
-              <VehiclePicker key={`ice-${countryCode}`} side="ice" country={countryCode} copy={text} selected={ice} onSelect={chooseIce} />
-            ) : null}
-            <PurchaseField
-              label={`${text.purchase} (${sourceCurrency})`}
-              ariaLabel={`${text.purchase} ${text.iceSeries}`}
-              hint={text.purchaseHint}
-              value={icePurchase}
-              invalid={icePurchase.trim() !== "" && parsePrice(icePurchase) == null}
-              invalidText={text.purchaseInvalid}
-              onChange={setIcePurchase}
-            />
-            {ice?.fuel === "premium" ? <Notice>{text.premiumWarn}</Notice> : null}
-            {ice?.powertrain === "ffv" ? <Notice>{text.ffvNote}</Notice> : null}
-            {ice?.powertrain === "phev" && ice.cycle !== "WLTP" && shareInfo ? (
-              <div className="grid gap-3 rounded-lg bg-secondary/60 p-3">
-                <p className="text-sm font-medium">{text.phevTitle}</p>
-                <select className={fieldClass} value={phevMode} onChange={(event) => setPhevMode(event.target.value as typeof phevMode)}>
-                  <option value="epa">{text.phevEpa}</option>
-                  <option value="custom">{text.phevCustom}</option>
-                  <option value="icct26">{text.phevIcct26}</option>
-                  <option value="icct56">{text.phevIcct56}</option>
-                </select>
-                <p className="text-sm">
-                  {text.officialUf}: {formatNumber(shareInfo.official * 100, lang, 1)} %.{" "}
-                  {text.phevShare}: {formatNumber(shareInfo.share * 100, lang, 1)} %.
-                </p>
-                {phevMode === "custom" ? (
-                  <div className="grid gap-2">
-                    <Label>{text.phevShare}</Label>
-                    <Slider
-                      min={0}
-                      max={100}
-                      value={[Math.round(shareInfo.share * 100)]}
-                      onValueChange={(value) => setCustomShare((Array.isArray(value) ? value[0] : value) / 100)}
-                    />
-                  </div>
-                ) : null}
-                <p className="text-sm leading-6 text-muted-foreground">{text.phevAssumption}</p>
-              </div>
-            ) : null}
-          </Step>
-
-          <Step n={4} title={text.steps.distance}>
+          <Group title={text.steps.use}>
             <div className="grid gap-3 sm:grid-cols-2">
               <label className="grid gap-1.5 text-sm">
                 {text.kmYear}
                 <Input
                   inputMode="decimal"
+                  aria-label={text.kmYear}
                   value={kmYear}
-                  onChange={(event) => {
-                    const next = event.target.value
-                    setKmYear(next)
-                  }}
+                  className={originClass(look, "typed")}
+                  onChange={(event) => setKmYear(event.target.value)}
                 />
               </label>
               <label className="grid gap-1.5 text-sm">
                 {text.kmMonth}
                 <Input
                   inputMode="decimal"
+                  aria-label={text.kmMonth}
                   value={Number.isFinite(km) ? String(Math.round((km / 12) * 10) / 10) : ""}
+                  className={originClass(look, "typed")}
                   onChange={(event) => {
                     const month = Number(event.target.value.replace(",", "."))
                     if (Number.isFinite(month)) setKmYear(String(Math.round(month * 12)))
@@ -694,40 +519,234 @@ export function Comparator({
                 />
               </label>
             </div>
-            <div className="grid gap-2">
-              <div className="flex justify-between text-sm">
-                <span>
-                  {text.city} {cityPct}%
-                </span>
-                <span>
-                  {text.highway} {100 - cityPct}%
-                </span>
+            {country ? (
+              <div className="grid gap-3">
+                <ConsumptionField
+                  label={`${text.kwhPer100} · ${text.evSeries}`}
+                  ariaLabel={`${text.kwhPer100} ${text.evSeries}`}
+                  hint={text.consumptionHint}
+                  value={evKwh}
+                  official={evOfficialKwh}
+                  edited={evKwhEdited}
+                  invalid={evBox.invalid}
+                  invalidText={text.consumptionInvalid}
+                  resetLabel={text.reset}
+                  look={look}
+                  onChange={(value) => {
+                    setEvKwhEdited(true)
+                    setEvKwh(value)
+                  }}
+                  onReset={() => setEvKwhEdited(false)}
+                />
+                <div className="grid gap-3 rounded-xl border border-border bg-card p-3">
+                  <ConsumptionField
+                    label={`${text.litersPer100} · ${text.iceSeries}`}
+                    ariaLabel={`${text.litersPer100} ${text.iceSeries}`}
+                    hint={text.consumptionHint}
+                    value={iceLiters}
+                    official={iceOfficialLiters}
+                    edited={iceLitersEdited}
+                    invalid={iceFuelBox.invalid}
+                    invalidText={text.consumptionInvalid}
+                    resetLabel={text.reset}
+                    look={look}
+                    onChange={(value) => {
+                      setIceLitersEdited(true)
+                      setIceLiters(value)
+                    }}
+                    onReset={() => setIceLitersEdited(false)}
+                  />
+                  <div className="flex flex-wrap items-center gap-2">
+                    <span className="text-sm text-muted-foreground">{text.fuelChoice}</span>
+                    {(["gasoline", "diesel"] as const).map((kind) => (
+                      <Button
+                        key={kind}
+                        type="button"
+                        size="sm"
+                        variant={fuelPrice === kind ? "default" : "outline"}
+                        aria-pressed={fuelPrice === kind}
+                        onClick={() => setFuelPrice(kind)}
+                      >
+                        {kind === "diesel" ? text.diesel : text.gasoline}
+                      </Button>
+                    ))}
+                  </div>
+                  <p className="text-sm leading-6">
+                    {text.fuelInUse(fuelPrice, fuelPriceLabel(fuelPrice === "diesel" ? diesel : gasoline, sourceCurrency, lang, text.perLiter))}
+                  </p>
+                </div>
+                <div className="flex items-center gap-3">
+                  <Switch id="plugin" checked={plugin} onCheckedChange={setPlugin} />
+                  <Label htmlFor="plugin">{text.pluginToggle}</Label>
+                  <InfoTip label={text.infoAbout(text.pluginToggle)}>{text.pluginHelp}</InfoTip>
+                </div>
+                {plugin ? (
+                  <div className="grid gap-3">
+                    <ConsumptionField
+                      label={`${text.kwhPer100} · ${text.iceSeries}`}
+                      ariaLabel={`${text.kwhPer100} ${text.iceSeries}`}
+                      hint={text.pluginHelp}
+                      value={iceKwh}
+                      official={iceOfficialKwh}
+                      edited={iceKwhEdited}
+                      invalid={iceKwhBox.invalid}
+                      invalidText={text.consumptionInvalid}
+                      resetLabel={text.reset}
+                      look={look}
+                      onChange={(value) => {
+                        setIceKwhEdited(true)
+                        setIceKwh(value)
+                      }}
+                      onReset={() => setIceKwhEdited(false)}
+                    />
+                    <div className="grid gap-3 sm:grid-cols-2">
+                      <label className="grid gap-1 text-sm">
+                        {text.fuelShare}
+                        <Input
+                          inputMode="decimal"
+                          aria-label={text.fuelShare}
+                          value={fuelShare}
+                          className={originClass(look, "typed")}
+                          onChange={(event) => setFuelShare(event.target.value)}
+                        />
+                      </label>
+                      <label className="grid gap-1 text-sm">
+                        {text.electricShare}
+                        <Input
+                          inputMode="decimal"
+                          aria-label={text.electricShare}
+                          value={elecShare}
+                          className={originClass(look, "typed")}
+                          onChange={(event) => setElecShare(event.target.value)}
+                        />
+                      </label>
+                    </div>
+                    <p className="text-sm">{text.percentSum(formatNumber(shareSum, lang, 1))}</p>
+                    {sharesInvalid ? (
+                      <Alert>
+                        <AlertTitle>{text.pluginToggle}</AlertTitle>
+                        <AlertDescription>{text.percentMismatch}</AlertDescription>
+                      </Alert>
+                    ) : null}
+                  </div>
+                ) : null}
+                <div className="grid gap-2">
+                  <div className="flex items-center justify-between gap-2 text-sm">
+                    <span>
+                      {text.city} {cityPct}%
+                    </span>
+                    <span className="flex items-center gap-2">
+                      {text.highway} {100 - cityPct}%
+                      <InfoTip label={text.infoAbout(text.city)}>{text.splitNote}</InfoTip>
+                    </span>
+                  </div>
+                  <Slider
+                    min={0}
+                    max={100}
+                    value={[cityPct]}
+                    disabled={ev?.cycle === "WLTP" && ice?.cycle === "WLTP"}
+                    onValueChange={(value) => setCityPct(Array.isArray(value) ? value[0] : value)}
+                  />
+                  {ev?.cycle === "WLTP" || ice?.cycle === "WLTP" ? <p className="text-sm leading-6">{text.splitSkipped}</p> : null}
+                  {cityPct !== 55 && (ev?.cycle !== "WLTP" || ice?.cycle !== "WLTP") ? <p className="text-sm">{text.splitChanged}</p> : null}
+                </div>
+                <div className="flex items-center gap-3">
+                  <Switch checked={upstream} onCheckedChange={setUpstream} id="upstream" />
+                  <Label htmlFor="upstream">{text.upstream}</Label>
+                  <InfoTip label={text.infoAbout(text.upstream)}>{text.upstreamHelp}</InfoTip>
+                </div>
               </div>
-              <Slider
-                min={0}
-                max={100}
-                value={[cityPct]}
-                disabled={ev?.cycle === "WLTP" && ice?.cycle === "WLTP"}
-                onValueChange={(value) => setCityPct(Array.isArray(value) ? value[0] : value)}
-              />
-              <p className="text-sm leading-6 text-muted-foreground">{text.splitNote}</p>
-              {ev?.cycle === "WLTP" || ice?.cycle === "WLTP" ? (
-                <p className="text-sm leading-6 text-muted-foreground">{text.splitSkipped}</p>
-              ) : null}
-              {cityPct !== 55 && (ev?.cycle !== "WLTP" || ice?.cycle !== "WLTP") ? <p className="text-sm">{text.splitChanged}</p> : null}
-            </div>
-            <div className="flex items-start gap-3">
-              <Switch checked={upstream} onCheckedChange={setUpstream} id="upstream" />
-              <div>
-                <Label htmlFor="upstream">{text.upstream}</Label>
-                <p className="text-sm leading-6 text-muted-foreground">{text.upstreamHelp}</p>
+            ) : null}
+          </Group>
+
+          <Group title={text.steps.models} info={<InfoTip label={text.infoAbout(text.steps.models)}>{text.modelOptional}</InfoTip>}>
+            <Button type="button" variant="outline" size="sm" aria-expanded={modelsOpen} onClick={() => setModelsOpen((open) => !open)}>
+              {modelsOpen ? text.hideModels : text.showModels}
+            </Button>
+            {ev && !modelsOpen ? (
+              <p className="text-sm">
+                {text.evSeries}: {ev.year} {ev.make} {ev.version}{" "}
+                <button type="button" className="underline" onClick={() => chooseEv(null)}>
+                  {text.clearModel}
+                </button>
+              </p>
+            ) : null}
+            {ice && !modelsOpen ? (
+              <p className="text-sm">
+                {text.iceSeries}: {ice.year} {ice.make} {ice.version}{" "}
+                <button type="button" className="underline" onClick={() => chooseIce(null)}>
+                  {text.clearModel}
+                </button>
+              </p>
+            ) : null}
+            {modelsOpen ? (
+              <div className="grid gap-4">
+                <div className="grid gap-3">
+                  <p className="text-sm font-medium">{text.steps.ev}</p>
+                  <VehiclePicker key={`ev-${countryCode}`} side="ev" country={countryCode} copy={text} selected={ev} onSelect={chooseEv} />
+                  <PurchaseField
+                    label={`${text.purchase} (${sourceCurrency})`}
+                    ariaLabel={`${text.purchase} ${text.evSeries}`}
+                    hint={text.purchaseHint}
+                    value={evPurchase}
+                    invalid={evPurchase.trim() !== "" && parsePrice(evPurchase) == null}
+                    invalidText={text.purchaseInvalid}
+                    look={look}
+                    onChange={setEvPurchase}
+                  />
+                </div>
+                <div className="grid gap-3">
+                  <p className="text-sm font-medium">{text.steps.ice}</p>
+                  <VehiclePicker key={`ice-${countryCode}`} side="ice" country={countryCode} copy={text} selected={ice} onSelect={chooseIce} />
+                  <PurchaseField
+                    label={`${text.purchase} (${sourceCurrency})`}
+                    ariaLabel={`${text.purchase} ${text.iceSeries}`}
+                    hint={text.purchaseHint}
+                    value={icePurchase}
+                    invalid={icePurchase.trim() !== "" && parsePrice(icePurchase) == null}
+                    invalidText={text.purchaseInvalid}
+                    look={look}
+                    onChange={setIcePurchase}
+                  />
+                  {ice?.fuel === "premium" ? <Notice>{text.premiumWarn}</Notice> : null}
+                  {ice?.powertrain === "ffv" ? <Notice>{text.ffvNote}</Notice> : null}
+                  {ice?.powertrain === "phev" && ice.cycle !== "WLTP" && shareInfo ? (
+                    <div className="grid gap-3 rounded-lg bg-secondary/60 p-3">
+                      <p className="flex items-center gap-2 text-sm font-medium">
+                        {text.phevTitle}
+                        <InfoTip label={text.infoAbout(text.phevTitle)}>{text.phevAssumption}</InfoTip>
+                      </p>
+                      <select className={fieldClass} value={phevMode} onChange={(event) => setPhevMode(event.target.value as typeof phevMode)}>
+                        <option value="epa">{text.phevEpa}</option>
+                        <option value="custom">{text.phevCustom}</option>
+                        <option value="icct26">{text.phevIcct26}</option>
+                        <option value="icct56">{text.phevIcct56}</option>
+                      </select>
+                      <p className="text-sm">
+                        {text.officialUf}: {formatNumber(shareInfo.official * 100, lang, 1)} %. {text.phevShare}:{" "}
+                        {formatNumber(shareInfo.share * 100, lang, 1)} %.
+                      </p>
+                      {phevMode === "custom" ? (
+                        <div className="grid gap-2">
+                          <Label>{text.phevShare}</Label>
+                          <Slider
+                            min={0}
+                            max={100}
+                            value={[Math.round(shareInfo.share * 100)]}
+                            onValueChange={(value) => setCustomShare((Array.isArray(value) ? value[0] : value) / 100)}
+                          />
+                        </div>
+                      ) : null}
+                    </div>
+                  ) : null}
+                </div>
               </div>
-            </div>
-          </Step>
+            ) : null}
+          </Group>
         </div>
 
         <section className="order-3 pb-8 lg:order-none lg:pb-2" id="sources">
-        <Step n={6} title={text.steps.sources}>
+        <Group title={text.steps.sources}>
           <p className="text-sm leading-6">{text.sourcesIntro}</p>
           <ul className="grid gap-2 text-sm leading-6">
             <li>
@@ -798,7 +817,7 @@ export function Comparator({
               ? text.sameCurrency
               : `${text.sourcePricesStay} ${sourceCurrency}. 1 ${sourceCurrency} = ${rate == null ? "—" : formatNumber(rate, lang, 4)} ${display}.`}
           </p>
-        </Step>
+        </Group>
         </section>
         </div>
 
@@ -826,6 +845,7 @@ export function Comparator({
             country={country}
             kmYear={km}
             catalog={catalog}
+            look={look}
           />
         </aside>
       </main>
@@ -856,6 +876,7 @@ function Results({
   country,
   kmYear,
   catalog,
+  look,
 }: {
   text: Copy
   lang: Lang
@@ -879,7 +900,9 @@ function Results({
   country: Country | null
   kmYear: number
   catalog: CountryCatalogMeta
+  look: Look
 }) {
+  const palette = lookPalette(look)
   if (!country) {
     return (
       <Panel title={text.steps.results}>
@@ -973,6 +996,7 @@ function Results({
         monthEv={result.ev.costMonth}
         monthIce={result.ice.costMonth}
         shown={shown}
+        savingsColor={palette.savings}
       />
       <Choice text={text} ev={ev} ice={ice} />
       {purchaseInvalid ? <Alert><AlertDescription>{text.purchaseInvalid}</AlertDescription></Alert> : null}
@@ -990,6 +1014,8 @@ function Results({
         shown={shown}
         evSeries={text.evSeries}
         iceSeries={text.iceSeries}
+        evColor={palette.ev}
+        iceColor={palette.ice}
       />
       <p className="text-sm leading-6">{text.noWinner}</p>
       <p className="text-xs text-muted-foreground">
@@ -1022,6 +1048,8 @@ function Results({
         gPerKm={{ ev: result.ev.gPerKm, ice: result.ice.gPerKm }}
         evBoundary={text.boundary(result.ev.boundary)}
         iceBoundary={text.boundary(result.ice.boundary)}
+        evColor={palette.ev}
+        iceColor={palette.ice}
       />
       <p className="text-sm">
         {text.evSeries} {money(result.ev.costYear)} {text.perYear} · {money(result.ev.costMonth)} {text.perMonth}
@@ -1030,7 +1058,10 @@ function Results({
         {text.iceSeries} {money(result.ice.costYear)} {text.perYear} · {money(result.ice.costMonth)} {text.perMonth}
       </p>
       {result.ice.upstreamSkippedDiesel && upstreamOn(result) ? (
-        <p className="text-sm text-muted-foreground">{text.upstreamHelp}</p>
+        <p className="flex items-center gap-2 text-sm">
+          {text.upstream}
+          <InfoTip label={text.infoAbout(text.upstream)}>{text.upstreamHelp}</InfoTip>
+        </p>
       ) : null}
     </Panel>
   )
@@ -1064,6 +1095,7 @@ function SavingsBoxes({
   monthEv,
   monthIce,
   shown,
+  savingsColor,
 }: {
   text: Copy
   lang: Lang
@@ -1077,6 +1109,7 @@ function SavingsBoxes({
   monthEv: number
   monthIce: number
   shown: (amount: number) => number
+  savingsColor: string
 }) {
   const series = spendProjection(purchaseReady ? evPrice : null, purchaseReady ? icePrice : null, annualEv, annualIce, horizon)
   const atHorizon = series.rows.find((row) => row.t === horizon) ?? series.rows[series.rows.length - 1]
@@ -1097,15 +1130,21 @@ function SavingsBoxes({
           const extra = figure.amount < -0.005
           return (
             <article key={figure.key} className="rounded-xl border border-border bg-card px-4 py-4" data-saving={figure.key}>
-              <p className="text-sm text-muted-foreground">{figure.label(extra)}</p>
-              <p className="mt-2 font-heading text-4xl font-semibold tracking-tight text-foreground">{money(figure.amount)}</p>
+              <p className="flex items-center gap-2 text-sm text-muted-foreground">
+                {figure.label(extra)}
+                {figure.key === "horizon" ? (
+                  <InfoTip label={text.infoAbout(figure.label(extra))}>
+                    {series.includesPurchase ? text.savingsWithPurchase : text.savingsWithoutPurchase}
+                  </InfoTip>
+                ) : null}
+              </p>
+              <p data-figure className="mt-2 font-heading text-4xl font-semibold tracking-tight" style={{ color: savingsColor }}>
+                {money(figure.amount)}
+              </p>
             </article>
           )
         })}
       </div>
-      <p className="text-sm leading-6 text-muted-foreground">
-        {series.includesPurchase ? text.savingsWithPurchase : text.savingsWithoutPurchase}
-      </p>
     </div>
   )
 }
@@ -1130,6 +1169,8 @@ function SpendBlock({
   shown,
   evSeries,
   iceSeries,
+  evColor,
+  iceColor,
 }: {
   text: Copy
   lang: Lang
@@ -1144,6 +1185,8 @@ function SpendBlock({
   shown: (amount: number) => number
   evSeries: string
   iceSeries: string
+  evColor: string
+  iceColor: string
 }) {
   const series = spendProjection(purchaseReady ? evPrice : null, purchaseReady ? icePrice : null, annualEv, annualIce, horizon)
   const point = series.point
@@ -1181,6 +1224,8 @@ function SpendBlock({
         rows={series.rows.map((row) => ({ t: row.t, ev: shown(row.ev), ice: shown(row.ice) }))}
         mark={series.mark ? { t: series.mark.t, cost: shown(series.mark.cost) } : null}
         money={money}
+        evColor={evColor}
+        iceColor={iceColor}
       />
     </div>
   )
@@ -1222,9 +1267,8 @@ function ConsumptionField({
   edited,
   invalid,
   invalidText,
-  yours,
-  officialLabel,
   resetLabel,
+  look,
   onChange,
   onReset,
 }: {
@@ -1236,30 +1280,32 @@ function ConsumptionField({
   edited: boolean
   invalid: boolean
   invalidText: string
-  yours: string
-  officialLabel: string
   resetLabel: string
+  look: Look
   onChange: (value: string) => void
   onReset: () => void
 }) {
-  const parsed = parsePrice(value)
-  const shownOfficial = official == null ? null : Number(priceInput(official))
-  const changed = edited && (shownOfficial == null || parsed == null || Math.abs(parsed - shownOfficial) > 1e-9)
+  const origin = consumptionOrigin(value, official, edited)
   return (
     <label className="grid gap-1.5 text-sm">
-      <span className="flex items-center justify-between gap-2">
+      <span className="flex items-center gap-2">
         {label}
-        <Badge variant="secondary">{changed || official == null ? yours : officialLabel}</Badge>
+        <InfoTip label={ariaLabel}>{hint}</InfoTip>
       </span>
-      <Input aria-label={ariaLabel} inputMode="decimal" autoComplete="off" value={value} onChange={(event) => onChange(event.target.value)} />
-      <span className="flex items-center justify-between gap-2 text-xs leading-5 text-muted-foreground">
-        <span>{hint}</span>
-        {changed && official != null ? (
-          <button type="button" className="shrink-0 underline" onClick={onReset}>
-            {resetLabel}
-          </button>
-        ) : null}
-      </span>
+      <Input
+        aria-label={ariaLabel}
+        inputMode="decimal"
+        autoComplete="off"
+        value={value}
+        data-origin={origin}
+        className={originClass(look, origin)}
+        onChange={(event) => onChange(event.target.value)}
+      />
+      {edited && official != null ? (
+        <button type="button" className="justify-self-start text-xs underline" onClick={onReset}>
+          {resetLabel}
+        </button>
+      ) : null}
       {invalid ? <span className="text-sm text-red-700">{invalidText}</span> : null}
     </label>
   )
@@ -1272,6 +1318,7 @@ function PurchaseField({
   value,
   invalid,
   invalidText,
+  look,
   onChange,
 }: {
   label: string
@@ -1280,13 +1327,24 @@ function PurchaseField({
   value: string
   invalid: boolean
   invalidText: string
+  look: Look
   onChange: (value: string) => void
 }) {
   return (
     <label className="grid gap-1.5 text-sm">
-      {label}
-      <Input aria-label={ariaLabel} inputMode="decimal" autoComplete="off" value={value} onChange={(event) => onChange(event.target.value)} />
-      <span className="text-xs leading-5 text-muted-foreground">{hint}</span>
+      <span className="flex items-center gap-2">
+        {label}
+        <InfoTip label={ariaLabel}>{hint}</InfoTip>
+      </span>
+      <Input
+        aria-label={ariaLabel}
+        inputMode="decimal"
+        autoComplete="off"
+        value={value}
+        data-origin="typed"
+        className={originClass(look, "typed")}
+        onChange={(event) => onChange(event.target.value)}
+      />
       {invalid ? <span className="text-sm text-amber-950">{invalidText}</span> : null}
     </label>
   )
@@ -1394,7 +1452,9 @@ function PriceField({
   onReset,
   text,
   date,
+  note,
   lang,
+  look,
 }: {
   label: string
   value: string
@@ -1403,36 +1463,41 @@ function PriceField({
   onReset: () => void
   text: Copy
   date: string | null
+  note: string
   lang: Lang
+  look: Look
 }) {
-  const parsed = parsePrice(value)
-  const shownOfficial = official == null ? null : Number(priceInput(official))
-  const edited = shownOfficial == null ? parsed != null : parsed == null || Math.abs(parsed - shownOfficial) > 1e-9
+  const origin = priceOrigin(value, official)
+  const source = [date ? formatDate(date, lang) : text.missingOfficial, note].filter(Boolean).join(". ")
   return (
     <label className="grid gap-1.5 text-sm">
-      <span className="flex items-center justify-between gap-2">
+      <span className="flex items-center gap-2">
         {label}
-        <Badge variant="secondary">{edited || official == null ? text.yours : text.official}</Badge>
+        <InfoTip label={text.infoAbout(label)}>{source}</InfoTip>
       </span>
-      <Input value={value} inputMode="decimal" onChange={(event) => onChange(event.target.value)} placeholder={official == null ? text.missingOfficial : undefined} />
-      <span className="flex items-center justify-between text-xs text-muted-foreground">
-        <span>{date ? formatDate(date, lang) : text.missingOfficial}</span>
-        {edited && official != null ? (
-          <button type="button" className="underline" onClick={onReset}>
-            {text.reset}
-          </button>
-        ) : null}
-      </span>
+      <Input
+        value={value}
+        inputMode="decimal"
+        data-origin={origin}
+        className={originClass(look, origin)}
+        onChange={(event) => onChange(event.target.value)}
+        placeholder={official == null ? text.missingOfficial : undefined}
+      />
+      {origin === "typed" && official != null ? (
+        <button type="button" className="justify-self-start text-xs underline" onClick={onReset}>
+          {text.reset}
+        </button>
+      ) : null}
     </label>
   )
 }
 
-function Step({ n, title, children }: { n: number; title: string; children: ReactNode }) {
+function Group({ title, info, children }: { title: string; info?: ReactNode; children: ReactNode }) {
   return (
     <section className="grid gap-3 rounded-2xl border border-border bg-card p-4 shadow-sm">
       <h2 className="flex items-center gap-2 font-heading text-xl font-semibold tracking-tight">
-        <span className="grid size-7 place-items-center rounded-full bg-primary text-sm text-primary-foreground">{n}</span>
         {title}
+        {info}
       </h2>
       {children}
     </section>
@@ -1442,13 +1507,28 @@ function Step({ n, title, children }: { n: number; title: string; children: Reac
 function Panel({ title, children }: { title: string; children: ReactNode }) {
   return (
     <section className="grid gap-3 rounded-2xl border border-border bg-card p-4 shadow-sm">
-      <h2 className="flex items-center gap-2 font-heading text-xl font-semibold tracking-tight">
-        <span className="grid size-7 place-items-center rounded-full bg-primary text-sm text-primary-foreground">5</span>
-        {title}
-      </h2>
+      <h2 className="font-heading text-xl font-semibold tracking-tight">{title}</h2>
       {children}
     </section>
   )
+}
+
+function consumptionOrigin(value: string, official: number | null, edited: boolean): Origin {
+  if (official == null || edited) return "typed"
+  return valueOrigin(value, official, true)
+}
+
+function priceOrigin(value: string, official: number | null): Origin {
+  return valueOrigin(value, official, false)
+}
+
+function valueOrigin(value: string, official: number | null, fromModel: boolean): Origin {
+  const parsed = parsePrice(value)
+  if (official == null) return "typed"
+  const shown = Number(priceInput(official))
+  const matches = parsed != null && Math.abs(parsed - shown) < 1e-9
+  if (!matches) return "typed"
+  return fromModel ? "model" : "official"
 }
 
 function Notice({ children }: { children: ReactNode }) {

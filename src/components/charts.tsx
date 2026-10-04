@@ -14,6 +14,7 @@ import {
   XAxis,
   YAxis,
 } from "recharts"
+import { InfoTip } from "@/components/info-tip"
 import type { Copy } from "@/lib/i18n"
 import type { Lang } from "@/lib/types"
 import { formatMoney, formatNumber } from "@/lib/format"
@@ -32,6 +33,8 @@ export function BreakevenChart({
   money,
   title,
   note,
+  evColor = EV,
+  iceColor = ICE,
 }: {
   copy: Copy
   lang: Lang
@@ -43,11 +46,16 @@ export function BreakevenChart({
   money: (value: number) => string
   title?: string
   note?: string
+  evColor?: string
+  iceColor?: string
 }) {
   return (
     <section className="rounded-xl border border-border bg-card p-3 shadow-sm">
-      <h3 className="px-1 font-heading text-lg font-semibold tracking-tight text-foreground">
-        {title ?? copy.breakevenTitle} <span className="text-sm font-sans font-normal text-muted-foreground">({currency})</span>
+      <h3 className="flex items-center gap-2 px-1 font-heading text-lg font-semibold tracking-tight text-foreground">
+        <span>
+          {title ?? copy.breakevenTitle} <span className="text-sm font-sans font-normal text-muted-foreground">({currency})</span>
+        </span>
+        <InfoTip label={copy.infoAbout(title ?? copy.breakevenTitle)}>{note ?? copy.breakevenNote}</InfoTip>
       </h3>
       <div className="h-48">
         <ResponsiveContainer width="100%" height="100%">
@@ -66,13 +74,12 @@ export function BreakevenChart({
               labelFormatter={(value) => `${formatNumber(Number(value), lang, 1)} ${copy.perYear}`}
             />
             <Legend />
-            <Line type="monotone" dataKey="ev" name={evSeries} stroke={EV} strokeWidth={2.5} dot={false} />
-            <Line type="monotone" dataKey="ice" name={iceSeries} stroke={ICE} strokeWidth={2.5} dot={false} />
+            <Line type="monotone" dataKey="ev" name={evSeries} stroke={evColor} strokeWidth={2.5} dot={false} />
+            <Line type="monotone" dataKey="ice" name={iceSeries} stroke={iceColor} strokeWidth={2.5} dot={false} />
             {mark ? <ReferenceDot x={mark.t} y={mark.cost} r={5} fill="#1c1915" stroke="#fff" /> : null}
           </LineChart>
         </ResponsiveContainer>
       </div>
-      <p className="px-1 text-xs leading-5 text-muted-foreground">{note ?? copy.breakevenNote}</p>
     </section>
   )
 }
@@ -91,6 +98,8 @@ export function Charts({
   iceBoundary,
   evSeries,
   iceSeries,
+  evColor = EV,
+  iceColor = ICE,
 }: {
   copy: Copy
   lang: Lang
@@ -105,6 +114,8 @@ export function Charts({
   iceBoundary: string
   evSeries: string
   iceSeries: string
+  evColor?: string
+  iceColor?: string
 }) {
   const money = (value: number) => formatMoney(value, currency, lang, Math.abs(value) >= 100 ? 0 : 2)
   return (
@@ -115,6 +126,8 @@ export function Charts({
             data={[{ name: copy.perYear, ev: year.ev, ice: year.ice }]}
             evSeries={evSeries}
             iceSeries={iceSeries}
+            evColor={evColor}
+            iceColor={iceColor}
             format={money}
           />
         </ChartCard>
@@ -124,6 +137,8 @@ export function Charts({
             evSeries={evSeries}
             iceSeries={iceSeries}
             format={money}
+            evColor={evColor}
+            iceColor={iceColor}
           />
         </ChartCard>
       </div>
@@ -132,6 +147,8 @@ export function Charts({
           data={[{ name: "100 km", ev: per100.ev, ice: per100.ice }]}
           evSeries={evSeries}
           iceSeries={iceSeries}
+          evColor={evColor}
+          iceColor={iceColor}
           format={(value) => formatNumber(value, lang, 2)}
         />
       </ChartCard>
@@ -140,6 +157,8 @@ export function Charts({
           data={[{ name: "100 km", ev: energy.ev, ice: energy.ice }]}
           evSeries={evSeries}
           iceSeries={iceSeries}
+          evColor={evColor}
+          iceColor={iceColor}
           format={(value) => formatNumber(value, lang, 1)}
         />
       </ChartCard>
@@ -156,10 +175,12 @@ export function Charts({
             evSeries={evSeries}
             iceSeries={iceSeries}
             format={(value) => formatNumber(value, lang, 2)}
+            evColor={evColor}
+            iceColor={iceColor}
           />
-          <p className="px-1 text-xs leading-5 text-muted-foreground">
+          <InfoTip label={copy.infoAbout(copy.co2Title)}>
             {evSeries}: {evBoundary}. {iceSeries}: {iceBoundary}.
-          </p>
+          </InfoTip>
         </ChartCard>
         <div className="grid content-start gap-3 rounded-xl bg-card p-4 ring-1 ring-foreground/10">
           <p className="text-sm font-medium">{copy.gPerKm}</p>
@@ -198,11 +219,15 @@ function Bars({
   evSeries,
   iceSeries,
   format,
+  evColor = EV,
+  iceColor = ICE,
 }: {
   data: { name: string; ev: number; ice: number }[]
   evSeries: string
   iceSeries: string
   format: (value: number) => string
+  evColor?: string
+  iceColor?: string
 }) {
   return (
     <div className="h-40">
@@ -213,8 +238,8 @@ function Bars({
           <YAxis tick={{ fill: "#64748b", fontSize: 12 }} width={56} />
           <Tooltip formatter={(value) => format(Number(value))} />
           <Legend />
-          <Bar dataKey="ev" name={evSeries} fill={EV} radius={[4, 4, 0, 0]} />
-          <Bar dataKey="ice" name={iceSeries} fill={ICE} radius={[4, 4, 0, 0]} />
+          <Bar dataKey="ev" name={evSeries} fill={evColor} radius={[4, 4, 0, 0]} />
+          <Bar dataKey="ice" name={iceSeries} fill={iceColor} radius={[4, 4, 0, 0]} />
         </BarChart>
       </ResponsiveContainer>
     </div>

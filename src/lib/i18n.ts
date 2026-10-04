@@ -15,13 +15,20 @@ export function copy(lang: Lang) {
     langEn: "English",
     currencyLabel: es ? "Moneda en pantalla" : "Display currency",
     steps: {
-      country: es ? "País y precios" : "Country and prices",
+      country: es ? "País" : "Country",
+      prices: es ? "Precios" : "Prices",
+      use: es ? "Uso" : "Use",
+      models: es ? "Selección de modelos" : "Model choice",
       ev: es ? "Eléctrico de batería" : "Battery electric",
       ice: es ? "Combustión, híbrido o enchufable" : "Combustion, hybrid, or plug-in",
       distance: es ? "Kilómetros y ciudad" : "Kilometres and city",
       results: es ? "Resultados" : "Results",
       sources: es ? "De dónde sale" : "Where this comes from",
     },
+    showModels: es ? "Mostrar modelos" : "Show models",
+    hideModels: es ? "Ocultar modelos" : "Hide models",
+    styleLabel: es ? "Estilo" : "Style",
+    infoAbout: (topic: string) => (es ? `Información sobre ${topic}` : `About ${topic}`),
     countryHint: es
       ? "UE-27, Estados Unidos y Reino Unido. Otro país no entra en esta versión."
       : "EU-27, the United States, and the United Kingdom. Other countries are out of this version.",
