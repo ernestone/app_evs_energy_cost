@@ -84,18 +84,13 @@ export function BreakevenChart({
   )
 }
 
-export function Charts({
+export function MoneyCharts({
   copy,
   lang,
   currency,
   year,
   month,
   per100,
-  energy,
-  co2,
-  gPerKm,
-  evBoundary,
-  iceBoundary,
   evSeries,
   iceSeries,
   evColor = EV,
@@ -107,11 +102,6 @@ export function Charts({
   year: { ev: number; ice: number }
   month: { ev: number; ice: number }
   per100: { ev: number; ice: number }
-  energy: { ev: number; ice: number }
-  co2: { ev: number | null; ice: number | null }
-  gPerKm: { ev: number | null; ice: number | null }
-  evBoundary: string
-  iceBoundary: string
   evSeries: string
   iceSeries: string
   evColor?: string
@@ -121,7 +111,7 @@ export function Charts({
   return (
     <div className="grid gap-4">
       <div className="grid gap-4 sm:grid-cols-2">
-        <ChartCard title={`${copy.steps.results}: ${copy.perYear}`} unit={currency}>
+        <ChartCard title={copy.perYearChart} unit={currency}>
           <Bars
             data={[{ name: copy.perYear, ev: year.ev, ice: year.ice }]}
             evSeries={evSeries}
@@ -142,7 +132,7 @@ export function Charts({
           />
         </ChartCard>
       </div>
-      <ChartCard title={`${copy.per100}`} unit={currency}>
+      <ChartCard title={copy.per100} unit={currency}>
         <Bars
           data={[{ name: "100 km", ev: per100.ev, ice: per100.ice }]}
           evSeries={evSeries}
@@ -152,41 +142,92 @@ export function Charts({
           format={(value) => formatNumber(value, lang, 2)}
         />
       </ChartCard>
-      <ChartCard title={copy.energyTitle} unit={copy.energyUnit}>
+    </div>
+  )
+}
+
+export function EnergyChart({
+  copy,
+  lang,
+  energy,
+  evSeries,
+  iceSeries,
+  evColor = EV,
+  iceColor = ICE,
+}: {
+  copy: Copy
+  lang: Lang
+  energy: { ev: number; ice: number }
+  evSeries: string
+  iceSeries: string
+  evColor?: string
+  iceColor?: string
+}) {
+  return (
+    <ChartCard title={copy.energyTitle} unit={copy.energyUnit}>
+      <Bars
+        data={[{ name: "100 km", ev: energy.ev, ice: energy.ice }]}
+        evSeries={evSeries}
+        iceSeries={iceSeries}
+        evColor={evColor}
+        iceColor={iceColor}
+        format={(value) => formatNumber(value, lang, 1)}
+      />
+    </ChartCard>
+  )
+}
+
+export function EmissionCharts({
+  copy,
+  lang,
+  co2,
+  gPerKm,
+  evBoundary,
+  iceBoundary,
+  evSeries,
+  iceSeries,
+  control,
+  evColor = EV,
+  iceColor = ICE,
+}: {
+  copy: Copy
+  lang: Lang
+  co2: { ev: number | null; ice: number | null }
+  gPerKm: { ev: number | null; ice: number | null }
+  evBoundary: string
+  iceBoundary: string
+  evSeries: string
+  iceSeries: string
+  control?: ReactNode
+  evColor?: string
+  iceColor?: string
+}) {
+  return (
+    <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_12rem]">
+      <ChartCard title={`${copy.co2Title} ${copy.co2Year}`} unit={copy.tonnes}>
+        {control}
         <Bars
-          data={[{ name: "100 km", ev: energy.ev, ice: energy.ice }]}
+          data={[
+            {
+              name: copy.co2Year,
+              ev: co2.ev ?? 0,
+              ice: co2.ice ?? 0,
+            },
+          ]}
           evSeries={evSeries}
           iceSeries={iceSeries}
+          format={(value) => formatNumber(value, lang, 2)}
           evColor={evColor}
           iceColor={iceColor}
-          format={(value) => formatNumber(value, lang, 1)}
         />
+        <InfoTip label={copy.infoAbout(copy.co2Title)}>
+          {evSeries}: {evBoundary}. {iceSeries}: {iceBoundary}.
+        </InfoTip>
       </ChartCard>
-      <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_12rem]">
-        <ChartCard title={`${copy.co2Title} ${copy.co2Year}`} unit={copy.tonnes}>
-          <Bars
-            data={[
-              {
-                name: copy.co2Year,
-                ev: co2.ev ?? 0,
-                ice: co2.ice ?? 0,
-              },
-            ]}
-            evSeries={evSeries}
-            iceSeries={iceSeries}
-            format={(value) => formatNumber(value, lang, 2)}
-            evColor={evColor}
-            iceColor={iceColor}
-          />
-          <InfoTip label={copy.infoAbout(copy.co2Title)}>
-            {evSeries}: {evBoundary}. {iceSeries}: {iceBoundary}.
-          </InfoTip>
-        </ChartCard>
-        <div className="grid content-start gap-3 rounded-xl bg-card p-4 ring-1 ring-foreground/10">
-          <p className="text-sm font-medium">{copy.gPerKm}</p>
-          <Figure label={evSeries} value={gPerKm.ev} lang={lang} />
-          <Figure label={iceSeries} value={gPerKm.ice} lang={lang} />
-        </div>
+      <div className="grid content-start gap-3 rounded-xl bg-card p-4 ring-1 ring-foreground/10">
+        <p className="text-sm font-medium">{copy.gPerKm}</p>
+        <Figure label={evSeries} value={gPerKm.ev} lang={lang} />
+        <Figure label={iceSeries} value={gPerKm.ice} lang={lang} />
       </div>
     </div>
   )

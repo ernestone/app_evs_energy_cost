@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Slider } from "@/components/ui/slider"
 import { Switch } from "@/components/ui/switch"
-import { BreakevenChart, Charts } from "@/components/charts"
+import { BreakevenChart, EmissionCharts, EnergyChart, MoneyCharts } from "@/components/charts"
 import { InfoTip } from "@/components/info-tip"
 import { VehiclePicker } from "@/components/vehicle-picker"
 import { compare, DEFAULT_CITY_SHARE, DEFAULT_KM_YEAR, electricityBlend, ratesPer100, resolveElectricShare, spendProjection, type ElectricityBlend } from "@/lib/calc"
@@ -659,11 +659,6 @@ export function Comparator({
                     onChange={setIcePurchase}
                   />
                 </div>
-                <div className="flex items-center gap-3">
-                  <Switch checked={upstream} onCheckedChange={setUpstream} id="upstream" />
-                  <Label htmlFor="upstream">{text.upstream}</Label>
-                  <InfoTip label={text.infoAbout(text.upstream)}>{text.upstreamHelp}</InfoTip>
-                </div>
               </div>
             ) : null}
           </Group>
@@ -760,6 +755,8 @@ export function Comparator({
             country={country}
             kmYear={km}
             catalog={catalog}
+            upstream={upstream}
+            onUpstream={setUpstream}
           />
         </aside>
       </main>
@@ -790,6 +787,8 @@ function Results({
   country,
   kmYear,
   catalog,
+  upstream,
+  onUpstream,
 }: {
   text: Copy
   lang: Lang
@@ -813,6 +812,8 @@ function Results({
   country: Country | null
   kmYear: number
   catalog: CountryCatalogMeta
+  upstream: boolean
+  onUpstream: (value: boolean) => void
 }) {
   if (!country) {
     return (
@@ -886,12 +887,13 @@ function Results({
     )
   }
 
-  const money = (amount: number) => formatMoney(shown(amount), display, lang, moneyDigits(amount))
   const evPrice = parsePrice(evPurchase)
   const icePrice = parsePrice(icePurchase)
   const purchaseInvalid =
     (evPurchase.trim() !== "" && evPrice == null) || (icePurchase.trim() !== "" && icePrice == null)
   const purchaseReady = evPrice != null && icePrice != null
+  const evSeries = ev ? `${text.evSeries} (${cycleOf(ev)})` : text.evSeries
+  const iceSeries = ice ? `${text.iceSeries} (${cycleOf(ice)})` : text.iceSeries
   return (
     <Panel title={text.steps.results}>
       <SavingsBoxes
@@ -910,66 +912,138 @@ function Results({
       />
       <Choice text={text} ev={ev} ice={ice} />
       {purchaseInvalid ? <Alert><AlertDescription>{text.purchaseInvalid}</AlertDescription></Alert> : null}
-      <SpendBlock
-        text={text}
-        lang={lang}
-        currency={display}
-        horizon={horizon}
-        onHorizon={onHorizon}
-        purchaseReady={purchaseReady}
-        evPrice={evPrice}
-        icePrice={icePrice}
-        annualEv={result.ev.costYear}
-        annualIce={result.ice.costYear}
-        shown={shown}
-        evSeries={text.evSeries}
-        iceSeries={text.iceSeries}
-      />
       <p className="text-sm leading-6">{text.noWinner}</p>
       <p className="text-xs text-muted-foreground">
         {text.fxLine} {formatDate(fxDate, lang)}
         {display === sourceCurrency ? "" : ` · 1 ${sourceCurrency} = ${rate == null ? "—" : formatNumber(rate, lang, 4)} ${display}`}
       </p>
-      <div className="grid gap-3 sm:grid-cols-2">
-        {ev ? (
-          <Quantity text={text} lang={lang} title={text.evSeries} vehicle={ev} liters={null} kwh={result.ev.kwhYear} litersPer100={null} kwhPer100={per100(result.ev.kwhYear, kmYear)} gramsPerKm={result.ev.gPerKm} rangeKm={result.ev.rangeKm} electricRangeKm={null} charge={result.ev.charge240} estimated={false} catalog={catalog} />
-        ) : (
-          <PlainUse text={text} lang={lang} title={text.evSeries} rate={per100(result.ev.kwhYear, kmYear)} unit="kWh/100 km" year={result.ev.kwhYear} yearUnit={text.kwhYear} />
-        )}
-        {ice ? (
-          <Quantity text={text} lang={lang} title={text.iceSeries} vehicle={ice} liters={result.ice.litersYear} kwh={result.ice.kwhYear || null} litersPer100={per100(result.ice.litersYear, kmYear)} kwhPer100={result.ice.kwhYear > 0 ? per100(result.ice.kwhYear, kmYear) : null} gramsPerKm={result.ice.gPerKm} rangeKm={result.ice.rangeKm} electricRangeKm={result.ice.electricRangeKm} charge={result.ice.charge240} estimated={result.ice.co2Estimated} catalog={catalog} />
-        ) : (
-          <PlainUse text={text} lang={lang} title={text.iceSeries} rate={per100(result.ice.litersYear, kmYear)} unit="L/100 km" year={result.ice.litersYear} yearUnit={text.litersYear} />
-        )}
-      </div>
-      <Charts
-        copy={text}
-        lang={lang}
-        currency={display}
-        evSeries={ev ? `${text.evSeries} (${cycleOf(ev)})` : text.evSeries}
-        iceSeries={ice ? `${text.iceSeries} (${cycleOf(ice)})` : text.iceSeries}
-        year={{ ev: shown(result.ev.costYear), ice: shown(result.ice.costYear) }}
-        month={{ ev: shown(result.ev.costMonth), ice: shown(result.ice.costMonth) }}
-        per100={{ ev: shown(result.ev.costPer100Km), ice: shown(result.ice.costPer100Km) }}
-        energy={{ ev: result.ev.kwhEqPer100Km, ice: result.ice.kwhEqPer100Km }}
-        co2={{ ev: result.ev.co2Tonnes, ice: result.ice.co2Tonnes }}
-        gPerKm={{ ev: result.ev.gPerKm, ice: result.ice.gPerKm }}
-        evBoundary={text.boundary(result.ev.boundary)}
-        iceBoundary={text.boundary(result.ice.boundary)}
-      />
-      <p className="text-sm">
-        {text.evSeries} {money(result.ev.costYear)} {text.perYear} · {money(result.ev.costMonth)} {text.perMonth}
-      </p>
-      <p className="text-sm">
-        {text.iceSeries} {money(result.ice.costYear)} {text.perYear} · {money(result.ice.costMonth)} {text.perMonth}
-      </p>
-      {result.ice.upstreamSkippedDiesel && upstreamOn(result) ? (
-        <p className="flex items-center gap-2 text-sm">
-          {text.upstream}
-          <InfoTip label={text.infoAbout(text.upstream)}>{text.upstreamHelp}</InfoTip>
-        </p>
-      ) : null}
+      <ResultBlock id="costes" title={text.costsBlock}>
+        <CostFigures
+          text={text}
+          lang={lang}
+          currency={display}
+          monthEv={shown(result.ev.costMonth)}
+          monthIce={shown(result.ice.costMonth)}
+          yearEv={shown(result.ev.costYear)}
+          yearIce={shown(result.ice.costYear)}
+        />
+        <SpendBlock
+          text={text}
+          lang={lang}
+          currency={display}
+          horizon={horizon}
+          onHorizon={onHorizon}
+          purchaseReady={purchaseReady}
+          evPrice={evPrice}
+          icePrice={icePrice}
+          annualEv={result.ev.costYear}
+          annualIce={result.ice.costYear}
+          shown={shown}
+          evSeries={text.evSeries}
+          iceSeries={text.iceSeries}
+        />
+        <MoneyCharts
+          copy={text}
+          lang={lang}
+          currency={display}
+          evSeries={evSeries}
+          iceSeries={iceSeries}
+          year={{ ev: shown(result.ev.costYear), ice: shown(result.ice.costYear) }}
+          month={{ ev: shown(result.ev.costMonth), ice: shown(result.ice.costMonth) }}
+          per100={{ ev: shown(result.ev.costPer100Km), ice: shown(result.ice.costPer100Km) }}
+        />
+      </ResultBlock>
+      <ResultBlock id="consumos" title={text.consumptionBlock}>
+        <EnergyChart
+          copy={text}
+          lang={lang}
+          energy={{ ev: result.ev.kwhEqPer100Km, ice: result.ice.kwhEqPer100Km }}
+          evSeries={evSeries}
+          iceSeries={iceSeries}
+        />
+        <div className="grid gap-3 sm:grid-cols-2">
+          {ev ? (
+            <Quantity text={text} lang={lang} title={text.evSeries} vehicle={ev} liters={null} kwh={result.ev.kwhYear} litersPer100={null} kwhPer100={per100(result.ev.kwhYear, kmYear)} gramsPerKm={result.ev.gPerKm} rangeKm={result.ev.rangeKm} electricRangeKm={null} charge={result.ev.charge240} estimated={false} catalog={catalog} />
+          ) : (
+            <PlainUse text={text} lang={lang} title={text.evSeries} rate={per100(result.ev.kwhYear, kmYear)} unit="kWh/100 km" year={result.ev.kwhYear} yearUnit={text.kwhYear} />
+          )}
+          {ice ? (
+            <Quantity text={text} lang={lang} title={text.iceSeries} vehicle={ice} liters={result.ice.litersYear} kwh={result.ice.kwhYear || null} litersPer100={per100(result.ice.litersYear, kmYear)} kwhPer100={result.ice.kwhYear > 0 ? per100(result.ice.kwhYear, kmYear) : null} gramsPerKm={result.ice.gPerKm} rangeKm={result.ice.rangeKm} electricRangeKm={result.ice.electricRangeKm} charge={result.ice.charge240} estimated={result.ice.co2Estimated} catalog={catalog} />
+          ) : (
+            <PlainUse text={text} lang={lang} title={text.iceSeries} rate={per100(result.ice.litersYear, kmYear)} unit="L/100 km" year={result.ice.litersYear} yearUnit={text.litersYear} />
+          )}
+        </div>
+      </ResultBlock>
+      <ResultBlock id="emisiones" title={text.emissionsBlock}>
+        <EmissionCharts
+          copy={text}
+          lang={lang}
+          evSeries={evSeries}
+          iceSeries={iceSeries}
+          co2={{ ev: result.ev.co2Tonnes, ice: result.ice.co2Tonnes }}
+          gPerKm={{ ev: result.ev.gPerKm, ice: result.ice.gPerKm }}
+          evBoundary={text.boundary(result.ev.boundary)}
+          iceBoundary={text.boundary(result.ice.boundary)}
+          control={
+            <div className="flex items-center gap-3 px-1 pt-2">
+              <Switch id="upstream" checked={upstream} onCheckedChange={onUpstream} />
+              <Label htmlFor="upstream">{text.upstream}</Label>
+              <InfoTip label={text.infoAbout(text.upstream)}>{text.upstreamHelp}</InfoTip>
+            </div>
+          }
+        />
+        {result.ice.upstreamSkippedDiesel ? (
+          <p className="text-sm text-muted-foreground">{text.upstream}</p>
+        ) : null}
+      </ResultBlock>
     </Panel>
+  )
+}
+
+function ResultBlock({ id, title, children }: { id: string; title: string; children: ReactNode }) {
+  return (
+    <section className="grid gap-3 border-t border-border pt-4" data-block={id}>
+      <h3 className="font-heading text-xl font-semibold tracking-tight">{title}</h3>
+      {children}
+    </section>
+  )
+}
+
+function CostFigures({
+  text,
+  lang,
+  currency,
+  monthEv,
+  monthIce,
+  yearEv,
+  yearIce,
+}: {
+  text: Copy
+  lang: Lang
+  currency: string
+  monthEv: number
+  monthIce: number
+  yearEv: number
+  yearIce: number
+}) {
+  const money = (amount: number) => formatMoney(amount, currency, lang, Math.abs(amount) >= 100 ? 0 : 2)
+  const figures = [
+    { key: "month-ev", amount: monthEv, label: text.costMonthEv },
+    { key: "month-ice", amount: monthIce, label: text.costMonthIce },
+    { key: "year-ev", amount: yearEv, label: text.costYearEv },
+    { key: "year-ice", amount: yearIce, label: text.costYearIce },
+  ]
+  return (
+    <div className="grid gap-3 sm:grid-cols-2">
+      {figures.map((figure) => (
+        <article key={figure.key} className="rounded-xl border border-border bg-card px-4 py-4" data-cost={figure.key}>
+          <p className="text-sm text-muted-foreground">{figure.label}</p>
+          <p data-figure className="mt-2 font-heading text-4xl font-semibold tracking-tight text-foreground">
+            {money(figure.amount)}
+          </p>
+        </article>
+      ))}
+    </div>
   )
 }
 
@@ -1271,10 +1345,6 @@ function PurchaseField({
       {invalid ? <span className="text-sm text-amber-950">{invalidText}</span> : null}
     </label>
   )
-}
-
-function upstreamOn(result: { ice: { upstreamSkippedDiesel: boolean } }) {
-  return result.ice.upstreamSkippedDiesel
 }
 
 function per100(total: number, kmYear: number) {
