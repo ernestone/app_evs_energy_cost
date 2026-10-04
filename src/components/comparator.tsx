@@ -233,18 +233,24 @@ export function Comparator({
 
   useEffect(() => {
     if (!draftReady || evKwhEdited) return
-    setEvKwh(priceInput(evOfficialKwh))
-  }, [draftReady, evOfficialKwh, evKwhEdited])
+    const next = priceInput(evOfficialKwh)
+    if (next === "" && ev) return
+    setEvKwh(next)
+  }, [draftReady, evOfficialKwh, evKwhEdited, ev])
 
   useEffect(() => {
     if (!draftReady || iceLitersEdited) return
-    setIceLiters(priceInput(iceOfficialLiters))
-  }, [draftReady, iceOfficialLiters, iceLitersEdited])
+    const next = priceInput(iceOfficialLiters)
+    if (next === "" && ice) return
+    setIceLiters(next)
+  }, [draftReady, iceOfficialLiters, iceLitersEdited, ice])
 
   useEffect(() => {
     if (!draftReady || iceKwhEdited) return
-    setIceKwh(priceInput(iceOfficialKwh))
-  }, [draftReady, iceOfficialKwh, iceKwhEdited])
+    const next = priceInput(iceOfficialKwh)
+    if (next === "" && ice) return
+    setIceKwh(next)
+  }, [draftReady, iceOfficialKwh, iceKwhEdited, ice])
 
   const evBox = boxRate(evKwh)
   const iceFuelBox = boxRate(iceLiters)
@@ -291,6 +297,11 @@ export function Comparator({
     () => [...countries].sort((a, b) => a.name[lang].localeCompare(b.name[lang], lang)),
     [countries, lang],
   )
+
+  const evFromEpa = Boolean(ev && ev.cycle !== "WLTP" && !evKwhEdited && evOfficialKwh != null)
+  const iceFromEpa = Boolean(ice && ice.cycle !== "WLTP" && !iceLitersEdited && iceOfficialLiters != null)
+  const pluginFromEpa = Boolean(plugin && ice && ice.cycle !== "WLTP" && !iceKwhEdited && iceOfficialKwh != null)
+  const epaShareAfter = pluginFromEpa ? "plugin" : iceFromEpa ? "ice" : evFromEpa ? "ev" : null
 
   const shareInfo = ice?.powertrain === "phev" ? resolveElectricShare(ice, {
     kmYear: km,
@@ -538,6 +549,9 @@ export function Comparator({
                   }}
                   onReset={() => setEvKwhEdited(false)}
                 />
+                {epaShareAfter === "ev" ? (
+                  <CityShare cityPct={cityPct} onChange={setCityPct} text={text} mixedWltp={ice?.cycle === "WLTP"} />
+                ) : null}
                 <div className="grid gap-3 rounded-xl border border-border bg-card p-3">
                   <ConsumptionField
                     label={`${text.litersPer100} · ${text.iceSeries}`}
@@ -556,6 +570,9 @@ export function Comparator({
                     }}
                     onReset={() => setIceLitersEdited(false)}
                   />
+                  {epaShareAfter === "ice" ? (
+                    <CityShare cityPct={cityPct} onChange={setCityPct} text={text} mixedWltp={ev?.cycle === "WLTP"} />
+                  ) : null}
                   <div className="flex flex-wrap items-center gap-2">
                     <span className="text-sm text-muted-foreground">{text.fuelChoice}</span>
                     {(["gasoline", "diesel"] as const).map((kind) => (
@@ -599,6 +616,9 @@ export function Comparator({
                       }}
                       onReset={() => setIceKwhEdited(false)}
                     />
+                    {epaShareAfter === "plugin" ? (
+                      <CityShare cityPct={cityPct} onChange={setCityPct} text={text} mixedWltp={ev?.cycle === "WLTP"} />
+                    ) : null}
                     <div className="grid gap-3 sm:grid-cols-2">
                       <label className="grid gap-1 text-sm">
                         {text.fuelShare}
@@ -630,25 +650,27 @@ export function Comparator({
                     ) : null}
                   </div>
                 ) : null}
-                <div className="grid gap-2">
-                  <div className="flex items-center justify-between gap-2 text-sm">
-                    <span>
-                      {text.city} {cityPct}%
-                    </span>
-                    <span className="flex items-center gap-2">
-                      {text.highway} {100 - cityPct}%
-                      <InfoTip label={text.infoAbout(text.city)}>{text.splitNote}</InfoTip>
-                    </span>
-                  </div>
-                  <Slider
-                    min={0}
-                    max={100}
-                    value={[cityPct]}
-                    disabled={ev?.cycle === "WLTP" && ice?.cycle === "WLTP"}
-                    onValueChange={(value) => setCityPct(Array.isArray(value) ? value[0] : value)}
+                <div className="grid gap-3 sm:grid-cols-2">
+                  <PurchaseField
+                    label={`${text.purchase} · ${text.evSeries} (${sourceCurrency})`}
+                    ariaLabel={`${text.purchase} ${text.evSeries}`}
+                    hint={text.purchaseHint}
+                    value={evPurchase}
+                    invalid={evPurchase.trim() !== "" && parsePrice(evPurchase) == null}
+                    invalidText={text.purchaseInvalid}
+                    look={look}
+                    onChange={setEvPurchase}
                   />
-                  {ev?.cycle === "WLTP" || ice?.cycle === "WLTP" ? <p className="text-sm leading-6">{text.splitSkipped}</p> : null}
-                  {cityPct !== 55 && (ev?.cycle !== "WLTP" || ice?.cycle !== "WLTP") ? <p className="text-sm">{text.splitChanged}</p> : null}
+                  <PurchaseField
+                    label={`${text.purchase} · ${text.iceSeries} (${sourceCurrency})`}
+                    ariaLabel={`${text.purchase} ${text.iceSeries}`}
+                    hint={text.purchaseHint}
+                    value={icePurchase}
+                    invalid={icePurchase.trim() !== "" && parsePrice(icePurchase) == null}
+                    invalidText={text.purchaseInvalid}
+                    look={look}
+                    onChange={setIcePurchase}
+                  />
                 </div>
                 <div className="flex items-center gap-3">
                   <Switch checked={upstream} onCheckedChange={setUpstream} id="upstream" />
@@ -684,30 +706,10 @@ export function Comparator({
                 <div className="grid gap-3">
                   <p className="text-sm font-medium">{text.steps.ev}</p>
                   <VehiclePicker key={`ev-${countryCode}`} side="ev" country={countryCode} copy={text} selected={ev} onSelect={chooseEv} />
-                  <PurchaseField
-                    label={`${text.purchase} (${sourceCurrency})`}
-                    ariaLabel={`${text.purchase} ${text.evSeries}`}
-                    hint={text.purchaseHint}
-                    value={evPurchase}
-                    invalid={evPurchase.trim() !== "" && parsePrice(evPurchase) == null}
-                    invalidText={text.purchaseInvalid}
-                    look={look}
-                    onChange={setEvPurchase}
-                  />
                 </div>
                 <div className="grid gap-3">
                   <p className="text-sm font-medium">{text.steps.ice}</p>
                   <VehiclePicker key={`ice-${countryCode}`} side="ice" country={countryCode} copy={text} selected={ice} onSelect={chooseIce} />
-                  <PurchaseField
-                    label={`${text.purchase} (${sourceCurrency})`}
-                    ariaLabel={`${text.purchase} ${text.iceSeries}`}
-                    hint={text.purchaseHint}
-                    value={icePurchase}
-                    invalid={icePurchase.trim() !== "" && parsePrice(icePurchase) == null}
-                    invalidText={text.purchaseInvalid}
-                    look={look}
-                    onChange={setIcePurchase}
-                  />
                   {ice?.fuel === "premium" ? <Notice>{text.premiumWarn}</Notice> : null}
                   {ice?.powertrain === "ffv" ? <Notice>{text.ffvNote}</Notice> : null}
                   {ice?.powertrain === "phev" && ice.cycle !== "WLTP" && shareInfo ? (
@@ -1145,6 +1147,35 @@ function SavingsBoxes({
           )
         })}
       </div>
+    </div>
+  )
+}
+
+function CityShare({
+  cityPct,
+  onChange,
+  text,
+  mixedWltp,
+}: {
+  cityPct: number
+  onChange: (value: number) => void
+  text: Copy
+  mixedWltp: boolean
+}) {
+  return (
+    <div className="grid gap-2" data-epa-share>
+      <div className="flex items-center justify-between gap-2 text-sm">
+        <span>
+          {text.city} {cityPct}%
+        </span>
+        <span className="flex items-center gap-2">
+          {text.highway} {100 - cityPct}%
+          <InfoTip label={text.infoAbout(text.city)}>{text.splitNote}</InfoTip>
+        </span>
+      </div>
+      <Slider min={0} max={100} value={[cityPct]} onValueChange={(value) => onChange(Array.isArray(value) ? value[0] : value)} />
+      {mixedWltp ? <p className="text-sm leading-6">{text.splitSkipped}</p> : null}
+      {cityPct !== 55 ? <p className="text-sm">{text.splitChanged}</p> : null}
     </div>
   )
 }
