@@ -214,7 +214,8 @@ export function copy(lang: Lang) {
       ? "Opcional. Ábrelo solo si quieres un coche del catálogo. El consumo de arriba es el que entra en la cuenta."
       : "Optional. Open it only if you want a car from the catalog. The consumption above is what the calculation uses.",
     clearModel: es ? "Quitar modelo" : "Clear model",
-    pluginToggle: es ? "Añadir consumo eléctrico del enchufable" : "Add the plug-in hybrid’s electric consumption",
+    pluginToggle: es ? "Añadir consumo eléctrico PHEV" : "Add PHEV electric consumption",
+    pluginDataTitle: es ? "Datos híbrido enchufable" : "Plug-in hybrid data",
     pluginHelp: es
       ? "Cada cifra es el consumo de ese motor. El porcentaje es la parte de los kilómetros. Tienen que sumar 100. La gasolina o el diésel pagan los litros; la mezcla de luz paga los kWh."
       : "Each figure is that motor’s consumption. The percent is the share of kilometres. They have to add up to 100. Gasoline or diesel pays for the litres; the electricity blend pays for the kWh.",

@@ -94,6 +94,8 @@ export function BreakevenChart({
   )
 }
 
+type MoneyPoint = { ev: number; ice: number; iceFuel?: number; iceElec?: number }
+
 export function MoneyCharts({
   copy,
   lang,
@@ -103,30 +105,37 @@ export function MoneyCharts({
   per100,
   evSeries,
   iceSeries,
+  stack = false,
   evColor = EV,
   iceColor = ICE,
 }: {
   copy: Copy
   lang: Lang
   currency: string
-  year: { ev: number; ice: number }
-  month: { ev: number; ice: number }
-  per100: { ev: number; ice: number }
+  year: MoneyPoint
+  month: MoneyPoint
+  per100: MoneyPoint
   evSeries: string
   iceSeries: string
+  stack?: boolean
   evColor?: string
   iceColor?: string
 }) {
   const money = (value: number) => formatMoney(value, currency, lang, Math.abs(value) >= 100 ? 0 : 2)
+  const row = (name: string, point: MoneyPoint) =>
+    stack
+      ? { name, ev: point.ev, iceFuel: point.iceFuel ?? 0, iceElec: point.iceElec ?? 0 }
+      : { name, ev: point.ev, ice: point.ice }
   return (
-    <div className="grid gap-4">
+    <div className="grid gap-4" data-cost-bars={stack ? "stacked" : "grouped"}>
       <div className="grid gap-4 sm:grid-cols-2">
         <ChartCard title={copy.perYearChart} unit={currency}>
           <Bars
             lang={lang}
-            data={[{ name: copy.perYear, ev: year.ev, ice: year.ice }]}
+            data={[row(copy.perYear, year)]}
             evSeries={evSeries}
             iceSeries={iceSeries}
+            stack={stack}
             evColor={evColor}
             iceColor={iceColor}
             format={money}
@@ -135,9 +144,10 @@ export function MoneyCharts({
         <ChartCard title={copy.perMonth} unit={currency}>
           <Bars
             lang={lang}
-            data={[{ name: copy.perMonth, ev: month.ev, ice: month.ice }]}
+            data={[row(copy.perMonth, month)]}
             evSeries={evSeries}
             iceSeries={iceSeries}
+            stack={stack}
             format={money}
             evColor={evColor}
             iceColor={iceColor}
@@ -147,9 +157,10 @@ export function MoneyCharts({
       <ChartCard title={copy.per100} unit={currency}>
         <Bars
           lang={lang}
-          data={[{ name: "100 km", ev: per100.ev, ice: per100.ice }]}
+          data={[row("100 km", per100)]}
           evSeries={evSeries}
           iceSeries={iceSeries}
+          stack={stack}
           evColor={evColor}
           iceColor={iceColor}
           format={(value) => formatNumber(value, lang, 2)}
@@ -201,36 +212,39 @@ export function EmissionCharts({
   evSeries,
   iceSeries,
   control,
+  stack = false,
+  iceGrams,
   evColor = EV,
   iceColor = ICE,
 }: {
   copy: Copy
   lang: Lang
-  co2: { ev: number | null; ice: number | null }
+  co2: { ev: number | null; ice: number | null; iceFuel?: number; iceElec?: number }
   gPerKm: { ev: number | null; ice: number | null }
   evBoundary: string
   iceBoundary: string
   evSeries: string
   iceSeries: string
   control?: ReactNode
+  stack?: boolean
+  iceGrams?: { fuel: number; electric: number } | null
   evColor?: string
   iceColor?: string
 }) {
   return (
-    <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_12rem]">
+    <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_12rem]" data-co2-bars={stack ? "stacked" : "grouped"}>
       <ChartCard title={`${copy.co2Title} ${copy.co2Year}`} unit={copy.tonnes}>
         {control}
         <Bars
           lang={lang}
           data={[
-            {
-              name: copy.co2Year,
-              ev: co2.ev ?? 0,
-              ice: co2.ice ?? 0,
-            },
+            stack
+              ? { name: copy.co2Year, ev: co2.ev ?? 0, iceFuel: co2.iceFuel ?? 0, iceElec: co2.iceElec ?? 0 }
+              : { name: copy.co2Year, ev: co2.ev ?? 0, ice: co2.ice ?? 0 },
           ]}
           evSeries={evSeries}
           iceSeries={iceSeries}
+          stack={stack}
           format={(value) => formatNumber(value, lang, 2)}
           evColor={evColor}
           iceColor={iceColor}
@@ -239,21 +253,21 @@ export function EmissionCharts({
           {evSeries}: {evBoundary}. {iceSeries}: {iceBoundary}.
         </InfoTip>
       </ChartCard>
-      <div className="grid content-start gap-3 rounded-xl bg-card p-4 ring-1 ring-foreground/10">
+      <div className="grid content-start gap-3 rounded-xl bg-card p-4 ring-1 ring-foreground/10" data-gkm>
         <p className="text-sm font-medium">{copy.gPerKm}</p>
         <Figure label={evSeries} value={gPerKm.ev} lang={lang} />
-        <Figure label={iceSeries} value={gPerKm.ice} lang={lang} />
+        <Figure label={iceSeries} value={gPerKm.ice} detail={iceGrams ? `${formatNumber(iceGrams.fuel, lang, 0)} / ${formatNumber(iceGrams.electric, lang, 0)}` : undefined} lang={lang} />
       </div>
     </div>
   )
 }
 
-function Figure({ label, value, lang }: { label: string; value: number | null; lang: Lang }) {
+function Figure({ label, value, detail, lang }: { label: string; value: number | null; detail?: string; lang: Lang }) {
   return (
     <p className="text-sm">
       <span className="block text-muted-foreground">{label}</span>
       <span className="font-heading text-2xl text-foreground">
-        {value == null ? "—" : formatNumber(value, lang, 0)}
+        {detail ?? (value == null ? "—" : formatNumber(value, lang, 0))}
       </span>
     </p>
   )
@@ -276,14 +290,16 @@ function Bars({
   evSeries,
   iceSeries,
   format,
+  stack = false,
   evColor = EV,
   iceColor = ICE,
 }: {
   lang: Lang
-  data: { name: string; ev: number; ice: number }[]
+  data: { name: string; ev: number; ice?: number; iceFuel?: number; iceElec?: number }[]
   evSeries: string
   iceSeries: string
   format: (value: number) => string
+  stack?: boolean
   evColor?: string
   iceColor?: string
 }) {
@@ -301,7 +317,14 @@ function Bars({
           <Tooltip formatter={(value) => format(Number(value))} />
           <Legend />
           <Bar dataKey="ev" name={evSeries} fill={evColor} radius={[4, 4, 0, 0]} />
-          <Bar dataKey="ice" name={iceSeries} fill={iceColor} radius={[4, 4, 0, 0]} />
+          {stack ? (
+            <>
+              <Bar dataKey="iceFuel" name={iceSeries} stackId="phev" fill={iceColor} />
+              <Bar dataKey="iceElec" name={iceSeries} stackId="phev" fill={evColor} legendType="none" radius={[4, 4, 0, 0]} />
+            </>
+          ) : (
+            <Bar dataKey="ice" name={iceSeries} fill={iceColor} radius={[4, 4, 0, 0]} />
+          )}
         </BarChart>
       </ResponsiveContainer>
     </div>

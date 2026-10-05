@@ -381,6 +381,7 @@ export function Comparator({
     setCustomShare(null)
     setIce(vehicle)
     if (vehicle) setFuelPrice(vehicle.fuel === "diesel" ? "diesel" : "gasoline")
+    if (vehicle?.powertrain === "phev") setPlugin(true)
   }
 
   return (
@@ -711,7 +712,10 @@ export function Comparator({
                 <div className="flex items-center gap-3">
                   <Switch id="plugin" checked={plugin} onCheckedChange={setPlugin} />
                   <Label htmlFor="plugin">{text.pluginToggle}</Label>
-                  <InfoTip label={text.infoAbout(text.pluginToggle)}>{text.pluginHelp}</InfoTip>
+                  <InfoTip label={text.infoAbout(text.pluginToggle)}>
+                    <p className="font-heading font-semibold">{text.pluginDataTitle}</p>
+                    <p>{text.pluginHelp}</p>
+                  </InfoTip>
                 </div>
                 {plugin ? (
                   <div className="grid gap-3">
@@ -816,6 +820,8 @@ export function Comparator({
             catalog={catalog}
             upstream={upstream}
             onUpstream={setUpstream}
+            plugin={plugin && sharesReady}
+            fuelPerLiter={parsePrice(fuelPrice === "diesel" ? diesel : gasoline, lang) ?? 0}
           />
         </aside>
       </main>
@@ -846,6 +852,8 @@ function Results({
   catalog,
   upstream,
   onUpstream,
+  plugin,
+  fuelPerLiter,
 }: {
   text: Copy
   lang: Lang
@@ -868,7 +876,10 @@ function Results({
   catalog: CountryCatalogMeta
   upstream: boolean
   onUpstream: (value: boolean) => void
+  plugin: boolean
+  fuelPerLiter: number
 }) {
+  const iceName = plugin ? "PHEV" : text.iceSeries
   if (!country) {
     return (
       <Panel title={text.steps.results}>
@@ -882,7 +893,7 @@ function Results({
   if (consumptionInvalid) {
     return (
       <Panel title={text.steps.results}>
-        <Choice text={text} ev={ev} ice={ice} />
+        <Choice text={text} ev={ev} ice={ice} iceName={iceName} />
         <Alert>
           <AlertTitle>{text.consumption}</AlertTitle>
           <AlertDescription>{text.consumptionInvalid}</AlertDescription>
@@ -893,7 +904,7 @@ function Results({
   if (sharesInvalid) {
     return (
       <Panel title={text.steps.results}>
-        <Choice text={text} ev={ev} ice={ice} />
+        <Choice text={text} ev={ev} ice={ice} iceName={iceName} />
         <Alert>
           <AlertTitle>{text.pluginToggle}</AlertTitle>
           <AlertDescription>
@@ -906,7 +917,7 @@ function Results({
   if (!blend.ok && blend.reason === "sum") {
     return (
       <Panel title={text.steps.results}>
-        <Choice text={text} ev={ev} ice={ice} />
+        <Choice text={text} ev={ev} ice={ice} iceName={iceName} />
         <Alert>
           <AlertTitle>{text.powerBlend}</AlertTitle>
           <AlertDescription>{text.percentMismatch}</AlertDescription>
@@ -917,7 +928,7 @@ function Results({
   if (!result.ok) {
     return (
       <Panel title={text.steps.results}>
-        <Choice text={text} ev={ev} ice={ice} />
+        <Choice text={text} ev={ev} ice={ice} iceName={iceName} />
         {result.invalidKm ? <Alert><AlertDescription>{text.invalidKm}</AlertDescription></Alert> : null}
         {result.missingPrices.length ? (
           <Alert>
@@ -945,10 +956,17 @@ function Results({
     (evPurchase.trim() !== "" && evPrice == null) || (icePurchase.trim() !== "" && icePrice == null)
   const purchaseReady = evPrice != null && icePrice != null
   const evSeries = ev ? `${text.evSeries} (${cycleOf(ev)})` : text.evSeries
-  const iceSeries = ice ? `${text.iceSeries} (${cycleOf(ice)})` : text.iceSeries
+  const iceSeries = plugin ? (ice ? `PHEV (${cycleOf(ice)})` : "PHEV") : ice ? `${text.iceSeries} (${cycleOf(ice)})` : text.iceSeries
+  const elecPerKwh = blend.ok ? blend.pricePerKwh : 0
+  const iceFuelYear = result.ice.litersYear * fuelPerLiter
+  const iceElecYear = result.ice.kwhYear * elecPerKwh
+  const perHundred = kmYear > 0 ? kmYear / 100 : 0
+  const iceFuelPoint = (year: number) => (perHundred > 0 ? year / perHundred : 0)
+  const combustionGrams = kmYear > 0 ? ((result.ice.tailpipeTonnes + result.ice.upstreamTonnes) * 1_000_000) / kmYear : 0
+  const electricGrams = kmYear > 0 ? (result.ice.gridTonnes * 1_000_000) / kmYear : 0
   return (
     <Panel title={text.steps.results}>
-      <Choice text={text} ev={ev} ice={ice} />
+      <Choice text={text} ev={ev} ice={ice} iceName={iceName} />
       {purchaseInvalid ? <Alert><AlertDescription>{text.purchaseInvalid}</AlertDescription></Alert> : null}
       <ResultBlock id="costes" title={text.costsBlock}>
         <CostTable
@@ -964,6 +982,7 @@ function Results({
           monthEv={result.ev.costMonth}
           monthIce={result.ice.costMonth}
           shown={shown}
+          iceHeading={plugin ? "PHEV" : text.costColIce}
         />
         <SpendBlock
           text={text}
@@ -978,7 +997,7 @@ function Results({
           annualIce={result.ice.costYear}
           shown={shown}
           evSeries={text.evSeries}
-          iceSeries={text.iceSeries}
+          iceSeries={iceName}
         />
         <MoneyCharts
           copy={text}
@@ -986,9 +1005,10 @@ function Results({
           currency={display}
           evSeries={evSeries}
           iceSeries={iceSeries}
-          year={{ ev: shown(result.ev.costYear), ice: shown(result.ice.costYear) }}
-          month={{ ev: shown(result.ev.costMonth), ice: shown(result.ice.costMonth) }}
-          per100={{ ev: shown(result.ev.costPer100Km), ice: shown(result.ice.costPer100Km) }}
+          stack={plugin}
+          year={{ ev: shown(result.ev.costYear), ice: shown(result.ice.costYear), iceFuel: shown(iceFuelYear), iceElec: shown(iceElecYear) }}
+          month={{ ev: shown(result.ev.costMonth), ice: shown(result.ice.costMonth), iceFuel: shown(iceFuelYear / 12), iceElec: shown(iceElecYear / 12) }}
+          per100={{ ev: shown(result.ev.costPer100Km), ice: shown(result.ice.costPer100Km), iceFuel: shown(iceFuelPoint(iceFuelYear)), iceElec: shown(iceFuelPoint(iceElecYear)) }}
         />
       </ResultBlock>
       <ResultBlock id="consumos" title={text.consumptionBlock}>
@@ -1006,9 +1026,9 @@ function Results({
             <PlainUse text={text} lang={lang} title={text.evSeries} rate={per100(result.ev.kwhYear, kmYear)} unit="kWh/100 km" year={result.ev.kwhYear} yearUnit={text.kwhYear} />
           )}
           {ice ? (
-            <Quantity text={text} lang={lang} title={text.iceSeries} vehicle={ice} liters={result.ice.litersYear} kwh={result.ice.kwhYear || null} litersPer100={per100(result.ice.litersYear, kmYear)} kwhPer100={result.ice.kwhYear > 0 ? per100(result.ice.kwhYear, kmYear) : null} gramsPerKm={result.ice.gPerKm} rangeKm={result.ice.rangeKm} electricRangeKm={result.ice.electricRangeKm} charge={result.ice.charge240} estimated={result.ice.co2Estimated} catalog={catalog} />
+            <Quantity text={text} lang={lang} title={iceName} vehicle={ice} liters={result.ice.litersYear} kwh={plugin ? result.ice.kwhYear : result.ice.kwhYear || null} litersPer100={per100(result.ice.litersYear, kmYear)} kwhPer100={plugin || result.ice.kwhYear > 0 ? per100(result.ice.kwhYear, kmYear) : null} gramsPerKm={result.ice.gPerKm} rangeKm={result.ice.rangeKm} electricRangeKm={result.ice.electricRangeKm} charge={result.ice.charge240} estimated={result.ice.co2Estimated} catalog={catalog} />
           ) : (
-            <PlainUse text={text} lang={lang} title={text.iceSeries} rate={per100(result.ice.litersYear, kmYear)} unit="L/100 km" year={result.ice.litersYear} yearUnit={text.litersYear} />
+            <PlainUse text={text} lang={lang} title={iceName} rate={per100(result.ice.litersYear, kmYear)} unit="L/100 km" year={result.ice.litersYear} yearUnit={text.litersYear} kwh={plugin ? result.ice.kwhYear : null} kwhUnit={text.kwhYear} />
           )}
         </div>
       </ResultBlock>
@@ -1034,8 +1054,15 @@ function Results({
           lang={lang}
           evSeries={evSeries}
           iceSeries={iceSeries}
-          co2={{ ev: result.ev.co2Tonnes, ice: result.ice.co2Tonnes }}
+          stack={plugin}
+          co2={{
+            ev: result.ev.co2Tonnes,
+            ice: result.ice.co2Tonnes,
+            iceFuel: result.ice.tailpipeTonnes + result.ice.upstreamTonnes,
+            iceElec: result.ice.gridTonnes,
+          }}
           gPerKm={{ ev: result.ev.gPerKm, ice: result.ice.gPerKm }}
+          iceGrams={plugin ? { fuel: combustionGrams, electric: electricGrams } : null}
           evBoundary={text.boundary(result.ev.boundary)}
           iceBoundary={text.boundary(result.ice.boundary)}
           control={
@@ -1079,6 +1106,7 @@ function CostTable({
   monthEv,
   monthIce,
   shown,
+  iceHeading,
 }: {
   text: Copy
   lang: Lang
@@ -1092,6 +1120,7 @@ function CostTable({
   monthEv: number
   monthIce: number
   shown: (amount: number) => number
+  iceHeading: string
 }) {
   const series = spendProjection(purchaseReady ? evPrice : null, purchaseReady ? icePrice : null, annualEv, annualIce, horizon)
   const atHorizon = series.rows.find((row) => row.t === horizon) ?? series.rows[series.rows.length - 1]
@@ -1108,7 +1137,7 @@ function CostTable({
           <tr className="border-b border-border text-muted-foreground">
             <th className="px-2 py-2 font-medium" />
             <th className="px-2 py-2 font-medium">{text.costColEv}</th>
-            <th className="px-2 py-2 font-medium">{text.costColIce}</th>
+            <th className="px-2 py-2 font-medium">{iceHeading}</th>
             <th className="px-2 py-2 font-medium">{text.savingCol}</th>
           </tr>
         </thead>
@@ -1142,7 +1171,7 @@ function CostTable({
   )
 }
 
-function Choice({ text, ev, ice }: { text: Copy; ev: Vehicle | null; ice: Vehicle | null }) {
+function Choice({ text, ev, ice, iceName }: { text: Copy; ev: Vehicle | null; ice: Vehicle | null; iceName: string }) {
   if (!ev && !ice) return null
   return (
     <div className="grid gap-2 sm:grid-cols-2" data-models>
@@ -1151,7 +1180,7 @@ function Choice({ text, ev, ice }: { text: Copy; ev: Vehicle | null; ice: Vehicl
         <span className="font-medium">{ev ? `${ev.year} ${ev.make} ${ev.version}` : text.noModel}</span>
       </p>
       <p className="rounded-lg border border-border bg-card px-3 py-2 text-sm leading-5">
-        <span className="block text-xs uppercase tracking-wide text-muted-foreground">{text.iceSeries}</span>
+        <span className="block text-xs uppercase tracking-wide text-muted-foreground">{iceName}</span>
         <span className="font-medium">{ice ? `${ice.year} ${ice.make} ${ice.version}` : text.noModel}</span>
       </p>
     </div>
@@ -1271,6 +1300,8 @@ function PlainUse({
   unit,
   year,
   yearUnit,
+  kwh = null,
+  kwhUnit,
 }: {
   text: Copy
   lang: Lang
@@ -1279,13 +1310,18 @@ function PlainUse({
   unit: string
   year: number
   yearUnit: string
+  kwh?: number | null
+  kwhUnit?: string
 }) {
   return (
-    <div className="rounded-xl border border-border bg-card p-3">
+    <div className="rounded-xl border border-border bg-card p-3" data-use={title}>
       <p className="text-xs uppercase tracking-wide text-muted-foreground">{title}</p>
       <p className="text-sm font-medium">{text.noModel}</p>
       <p className="mt-1 text-sm">{rate == null ? "—" : `${formatNumber(rate, lang, 1)} ${unit}`}</p>
       <p className="mt-2 font-heading text-2xl font-semibold">{formatNumber(year, lang, 0)} <span className="font-sans text-sm font-normal">{yearUnit}</span></p>
+      {kwh != null ? (
+        <p className="mt-2 font-heading text-2xl font-semibold">{formatNumber(kwh, lang, 0)} <span className="font-sans text-sm font-normal">{kwhUnit}</span></p>
+      ) : null}
     </div>
   )
 }
