@@ -175,6 +175,7 @@ export function copy(lang: Lang) {
     emissionsBlock: es ? "Emisiones" : "Emissions",
     costColEv: es ? "Costes eléctrico" : "Electric costs",
     costColIce: es ? "Costes combustión" : "Combustion costs",
+    costColPhev: es ? "Costes PHEV" : "PHEV costs",
     savingCol: es ? "Ahorro" : "Savings",
     horizonRow: (years: number) => (es ? `a ${years} años` : `over ${years} years`),
     perYearChart: es ? "Al año" : "Per year",

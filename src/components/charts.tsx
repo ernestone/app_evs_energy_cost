@@ -316,7 +316,7 @@ function Bars({
           />
           <Tooltip formatter={(value) => format(Number(value))} />
           <Legend />
-          <Bar dataKey="ev" name={evSeries} fill={evColor} radius={[4, 4, 0, 0]} />
+          <Bar dataKey="ev" name={evSeries} stackId="ev" fill={evColor} radius={[4, 4, 0, 0]} />
           {stack ? (
             <>
               <Bar dataKey="iceFuel" name={iceSeries} stackId="phev" fill={iceColor} />

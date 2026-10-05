@@ -982,7 +982,7 @@ function Results({
           monthEv={result.ev.costMonth}
           monthIce={result.ice.costMonth}
           shown={shown}
-          iceHeading={plugin ? "PHEV" : text.costColIce}
+          iceHeading={plugin ? text.costColPhev : text.costColIce}
         />
         <SpendBlock
           text={text}
@@ -1136,9 +1136,9 @@ function CostTable({
         <thead>
           <tr className="border-b border-border text-muted-foreground">
             <th className="px-2 py-2 font-medium" />
+            <th className="px-2 py-2 font-medium">{text.savingCol}</th>
             <th className="px-2 py-2 font-medium">{text.costColEv}</th>
             <th className="px-2 py-2 font-medium">{iceHeading}</th>
-            <th className="px-2 py-2 font-medium">{text.savingCol}</th>
           </tr>
         </thead>
         <tbody>
@@ -1157,11 +1157,11 @@ function CostTable({
                     ) : null}
                   </span>
                 </th>
-                <td className="px-2 py-3 font-heading text-lg font-semibold text-red-700" data-cost="ev">{money(row.ev)}</td>
-                <td className="px-2 py-3 font-heading text-lg font-semibold text-red-700" data-cost="ice">{money(row.ice)}</td>
                 <td className={`px-2 py-3 font-heading text-lg font-semibold ${positive ? "text-green-700" : "text-red-700"}`} data-saving>
                   {money(saving)}
                 </td>
+                <td className="px-2 py-3 font-heading text-lg font-semibold text-red-700" data-cost="ev">{money(row.ev)}</td>
+                <td className="px-2 py-3 font-heading text-lg font-semibold text-red-700" data-cost="ice">{money(row.ice)}</td>
               </tr>
             )
           })}
