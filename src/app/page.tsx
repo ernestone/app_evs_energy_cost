@@ -3,6 +3,7 @@ import { Comparator } from "@/components/comparator"
 
 export const dynamic = "force-dynamic"
 import { countryCatalogMeta } from "@/lib/catalog"
+import { storageConfigured } from "@/lib/metrics-store"
 import { countryFromRequest, languageFromAcceptLanguage } from "@/lib/locale"
 import type { Country, FxTable, SnapshotMeta } from "@/lib/types"
 import countries from "../../data/snapshot/countries.json"
@@ -20,6 +21,7 @@ export default async function HomePage() {
       catalog={countryCatalogMeta()}
       initialLang={languageFromAcceptLanguage(requestHeaders.get("accept-language"))}
       initialCountry={countryFromRequest(requestHeaders.get("x-vercel-ip-country"), list.map((country) => country.code))}
+      metricsOn={storageConfigured()}
     />
   )
 }

@@ -274,6 +274,9 @@ export function copy(lang: Lang) {
     sourcesIntro: es
       ? "Foto estática en el repositorio. El navegador no llama a APIs de pago."
       : "Static snapshot in the repository. The browser does not call paid APIs.",
+    metricsNotice: es
+      ? "Guardamos esta consulta, sin nombre y sin IP: el país, lo que escribes (también el precio de compra) y el resultado. Guardamos el país de la conexión, un punto aproximado de esa conexión para el mapa, el idioma y la moneda de pantalla. Se conserva 12 meses."
+      : "We store this comparison, with no name and no IP: the country, what you type (including the purchase price) and the result. We keep the country of the connection, an approximate point of that connection for the map, the language, and the display currency. We keep it for 12 months.",
     epa: "EPA / DOE, fueleconomy.gov",
     oil: es ? "Comisión Europea, Oil Bulletin semanal, con impuestos" : "European Commission Weekly Oil Bulletin, prices with taxes",
     eurostat: es

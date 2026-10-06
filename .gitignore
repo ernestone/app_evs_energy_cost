@@ -39,3 +39,9 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# local metrics
+*.sqlite
+*.sqlite-journal
+*.sqlite-wal
+*.sqlite-shm

@@ -15,6 +15,7 @@ const deployment = deploymentId()
 const noStore = "no-cache, no-store, max-age=0, must-revalidate"
 
 const nextConfig: NextConfig = {
+  serverExternalPackages: ["postgres"],
   // The server is bound on 0.0.0.0 and advertised as localhost. Browsers that
   // open 127.0.0.1 are otherwise blocked from the dev runtime and the page
   // stays as static HTML.

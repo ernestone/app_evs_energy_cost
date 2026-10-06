@@ -20,6 +20,20 @@ npm test
 npm run build
 ```
 
+## Administración
+
+`/admin` enseña las comparaciones guardadas: primero los gráficos (mapa de conexiones, año, mes, kilómetros, modelos y desgloses) y debajo la tabla, con el precio de compra. En local el almacén es un sqlite y no hace falta una clave de GitHub para la calculadora:
+
+```bash
+DATABASE_URL=file:./data/local-metrics.sqlite npm run dev
+```
+
+Ese archivo no se sube. Sin `DATABASE_URL` no se guarda nada y el aviso no sale.
+
+En producción hacen falta `DATABASE_URL` (Postgres), `AUTH_GITHUB_ID`, `AUTH_GITHUB_SECRET`, `AUTH_SECRET` y `DATA_UPDATE_TOKEN`. Opcionales: `ADMIN_GITHUB_LOGIN` (por defecto `ernestone`) y `DATA_UPDATE_REPO` (por defecto `ernestone/app_evs_energy_cost`). Sin esas claves la calculadora pública sigue funcionando. No se guarda la IP ni el nombre. De la conexión se guarda el país y un punto aproximado para el mapa.
+
+La foto de datos se renueva con el workflow `update-snapshot` (Actions, ejecución manual). El botón del dueño lo dispara si `DATA_UPDATE_TOKEN` está en el servidor.
+
 ## Foto de datos
 
 Los JSON están en `data/snapshot/`. `vehicles.json` no es el CSV entero: guarda los campos que usa la pantalla, del año modelo 2000 al último del archivo público, sin MSRP.

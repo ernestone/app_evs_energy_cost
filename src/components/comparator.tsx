@@ -33,6 +33,96 @@ function boxRate(raw: string, lang: Lang) {
   return { value: parsed, invalid: false }
 }
 
+function vehicleLabel(vehicle: Vehicle) {
+  return `${vehicle.year} ${vehicle.make} ${vehicle.version}`.replace(/\s+/g, " ").trim().slice(0, 160)
+}
+
+function metricBody(input: {
+  metricsOn: boolean
+  result: { ok: boolean }
+  countryCode: string
+  lang: Lang
+  display: string
+  km: number
+  epaShareAfter: string | null
+  cityPct: number
+  kwh: number | null
+  liters: number | null
+  fuel: "gasoline" | "diesel"
+  plugin: boolean
+  sharesReady: boolean
+  fuelShare: number | null
+  electricShare: number | null
+  electricity: { label: string; percent: string; price: string }[]
+  evId: number | null
+  iceId: number | null
+  evModelLabel: string | null
+  iceModelLabel: string | null
+  evPurchase: string
+  icePurchase: string
+  horizon: number
+  monthEv: number
+  monthIce: number
+  yearEv: number
+  yearIce: number
+  evTonnes: number | null
+  iceTonnes: number | null
+  evGPerKm: number | null
+  iceGPerKm: number | null
+}) {
+  if (!input.metricsOn || !input.result.ok || !input.countryCode || input.kwh == null || input.liters == null) return null
+  if (!/^[A-Z]{3}$/.test(input.display) || !Number.isFinite(input.km) || input.km <= 0) return null
+  const horizon = (input.horizon === 10 || input.horizon === 15 || input.horizon === 20 ? input.horizon : 5) as 5 | 10 | 15 | 20
+  const evPrice = parsePrice(input.evPurchase, input.lang)
+  const icePrice = parsePrice(input.icePurchase, input.lang)
+  const series = spendProjection(evPrice, icePrice, input.yearEv, input.yearIce, horizon)
+  const at = series.rows.find((row) => row.t === horizon)
+  const horizonEv = at?.ev ?? 0
+  const horizonIce = at?.ice ?? 0
+  const phev = input.plugin && input.sharesReady && input.fuelShare != null && input.electricShare != null
+  return JSON.stringify({
+    country: input.countryCode,
+    language: input.lang,
+    displayCurrency: input.display,
+    kmYear: input.km,
+    cityShare: input.epaShareAfter ? { city: input.cityPct, highway: 100 - input.cityPct } : null,
+    kwhPer100: input.kwh,
+    litersPer100: input.liters,
+    fuel: input.fuel,
+    phev,
+    phevShares: phev ? { fuel: input.fuelShare, electric: input.electricShare } : null,
+    electricity: input.electricity,
+    evModelId: input.evId,
+    iceModelId: input.iceId,
+    evModelLabel: input.evModelLabel,
+    iceModelLabel: input.iceModelLabel,
+    evPurchase: input.evPurchase,
+    icePurchase: input.icePurchase,
+    result: {
+      costs: {
+        monthEv: input.monthEv,
+        monthIce: input.monthIce,
+        yearEv: input.yearEv,
+        yearIce: input.yearIce,
+        horizonEv,
+        horizonIce,
+      },
+      co2: {
+        evTonnes: input.evTonnes,
+        iceTonnes: input.iceTonnes,
+        evGPerKm: input.evGPerKm,
+        iceGPerKm: input.iceGPerKm,
+      },
+      savings: {
+        month: input.monthIce - input.monthEv,
+        year: input.yearIce - input.yearEv,
+        horizon: horizonIce - horizonEv,
+      },
+      horizon,
+    },
+  })
+}
+
 export function Comparator({
   countries,
   fx,
@@ -40,6 +130,7 @@ export function Comparator({
   catalog,
   initialLang,
   initialCountry,
+  metricsOn = false,
 }: {
   countries: Country[]
   fx: FxTable
@@ -47,6 +138,7 @@ export function Comparator({
   catalog: CountryCatalogMeta
   initialLang: Lang
   initialCountry: string
+  metricsOn?: boolean
 }) {
   const [lang, setLang] = useState<Lang>(initialLang)
   const langRef = useRef(lang)
@@ -384,6 +476,52 @@ export function Comparator({
     if (vehicle?.powertrain === "phev") setPlugin(true)
   }
 
+  const metricKey = metricBody({
+    metricsOn,
+    result,
+    countryCode: country?.code ?? "",
+    lang,
+    display,
+    km,
+    epaShareAfter,
+    cityPct,
+    kwh: evBox.value,
+    liters: iceFuelBox.value,
+    fuel: fuelPrice,
+    plugin,
+    sharesReady,
+    fuelShare: fuelShareBox.value,
+    electricShare: elecShareBox.value,
+    electricity: powerRows.map((row) => ({ label: row.label, percent: row.percent, price: row.price })),
+    evId: ev?.id ?? null,
+    iceId: ice?.id ?? null,
+    evModelLabel: ev ? vehicleLabel(ev) : null,
+    iceModelLabel: ice ? vehicleLabel(ice) : null,
+    evPurchase,
+    icePurchase,
+    horizon,
+    monthEv: result.ok ? result.ev.costMonth : 0,
+    monthIce: result.ok ? result.ice.costMonth : 0,
+    yearEv: result.ok ? result.ev.costYear : 0,
+    yearIce: result.ok ? result.ice.costYear : 0,
+    evTonnes: result.ok ? result.ev.co2Tonnes : null,
+    iceTonnes: result.ok ? result.ice.co2Tonnes : null,
+    evGPerKm: result.ok ? result.ev.gPerKm : null,
+    iceGPerKm: result.ok ? result.ice.gPerKm : null,
+  })
+
+  useEffect(() => {
+    if (!metricKey) return
+    const handle = window.setTimeout(() => {
+      void fetch("/api/metrics", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: metricKey,
+      })
+    }, 1200)
+    return () => window.clearTimeout(handle)
+  }, [metricKey])
+
   return (
     <>
     <title>{text.name}</title>
@@ -407,6 +545,7 @@ export function Comparator({
                   display={display}
                   sourceCurrency={sourceCurrency}
                   rate={rate}
+                  metricsOn={metricsOn}
                 />
               </InfoTip>
             </div>
@@ -439,6 +578,11 @@ export function Comparator({
           </div>
         </div>
       </header>
+      {metricsOn ? (
+        <div className="shrink-0 bg-[#e7f0ff]" data-metrics-notice>
+          <p className="mx-auto max-w-[92rem] px-4 py-2 text-sm leading-5 text-foreground">{text.metricsNotice}</p>
+        </div>
+      ) : null}
 
       <main className="mx-auto flex w-full max-w-[92rem] flex-col gap-4 px-4 py-4 lg:grid lg:min-h-0 lg:flex-1 lg:grid-cols-[minmax(22rem,0.88fr)_minmax(0,1.12fr)] lg:overflow-hidden lg:py-3">
         <div className="contents lg:flex lg:min-h-0 lg:flex-col lg:gap-4 lg:overflow-y-auto lg:overscroll-contain lg:pr-1">
@@ -1562,6 +1706,7 @@ function SourcesNote({
   display,
   sourceCurrency,
   rate,
+  metricsOn,
 }: {
   text: Copy
   lang: Lang
@@ -1572,10 +1717,12 @@ function SourcesNote({
   display: string
   sourceCurrency: string
   rate: number | null
+  metricsOn: boolean
 }) {
   return (
     <div className="grid gap-3">
       <p className="font-heading text-base font-semibold">{text.steps.sources}</p>
+      {metricsOn ? <p data-metrics-notice-sources>{text.metricsNotice}</p> : null}
       <p>{text.sourcesIntro}</p>
       <ul className="grid gap-2">
         <li>
